@@ -102,6 +102,10 @@ public class MediaData implements Comparable<MediaData>, Serializable{
         return getType() == TYPE_PHOTO;
     }
 
+    public String toTypeString() {
+        return isPhoto() ? "photo" : "video";
+    }
+
     private String humanReadableByteCount(long bytes, boolean si) {
         int unit = si ? 1000 : 1024;
         if (bytes < unit) return bytes + " B";

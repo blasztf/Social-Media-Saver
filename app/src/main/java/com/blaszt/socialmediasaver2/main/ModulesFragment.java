@@ -66,7 +66,7 @@ public final class ModulesFragment extends BaseFragment {
 
     private ArrayList<Module> getModules() {
         ArrayList<Module> modules = new ArrayList<>();
-        File[] apks = Module.getAllModulesApk(getContext());
+        File[] apks = Module.getAllModules(getContext());
         Module module;
         for (File apk : apks) {
             module = new Module(getContext(), apk.getName());

@@ -8,7 +8,6 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.blaszt.modulelinker.Responder;
@@ -36,7 +35,6 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public final class URLHandler extends IntentService implements URLHandlerListener {
@@ -140,7 +138,7 @@ public final class URLHandler extends IntentService implements URLHandlerListene
 
     @Override
     public boolean isURLValid(String url) {
-        File[] apks = Module.getAllModulesApk(this);
+        File[] apks = Module.getAllModules(this);
         Module module;
         for (File apk : apks) {
             module = new Module(this, apk.getName());

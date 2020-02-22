@@ -23,7 +23,6 @@ import android.util.DisplayMetrics;
 import android.util.SparseIntArray;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -52,6 +51,8 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import toolkit.util.TStrings;
 
 public final class GalleryFragment extends BaseFragment {
 
@@ -149,11 +150,13 @@ public final class GalleryFragment extends BaseFragment {
                         if (position > 0) {
                             // Previous item view.
                             stopGifVideo(adapter.getItemViewHolder(position - 1));
+                            resetZoomTouchImage(adapter.getItemViewHolder(position - 1));
                         }
 
                         if (position < adapter.getItemCount() - 1) {
                             // Next item view.
                             stopGifVideo(adapter.getItemViewHolder(position + 1));
+                            resetZoomTouchImage(adapter.getItemViewHolder(position + 1));
                         }
 
                         // Current item view.
@@ -168,6 +171,10 @@ public final class GalleryFragment extends BaseFragment {
 
                 private void stopGifVideo(GalleryPagerAdapter.MediaHolder mediaHolder) {
                     if (mediaHolder != null) stopGifVideo(mediaHolder.mView);
+                }
+
+                private void resetZoomTouchImage(GalleryPagerAdapter.MediaHolder mediaHolder) {
+                    if (mediaHolder != null) resetZoomTouchImage(mediaHolder.mView);
                 }
 
                 private void startGifVideo(View itemView) {
@@ -189,6 +196,16 @@ public final class GalleryFragment extends BaseFragment {
                         }
                     }
                 }
+
+                private void resetZoomTouchImage(View itemView) {
+                    TouchImageView touchImageView;
+                    if (itemView != null && itemView instanceof TouchImageView) {
+                        touchImageView = (TouchImageView) itemView;
+                        if (touchImageView.isZoomed()) {
+                            touchImageView.resetZoom();
+                        }
+                    }
+                }
             };
 
             galleryPager = view.findViewById(R.id.zoomPager);
@@ -198,22 +215,22 @@ public final class GalleryFragment extends BaseFragment {
                     return canGalleryPagerScroll;
                 }
             });
-            galleryPager.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-                float touchX;
-                int gridX;
-
-                @Override
-                public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                    switch (e.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            touchX = rv.getX() + e.getRawX();
-                            gridX = rv.getWidth() / 5;
-                            canGalleryPagerScroll = !((touchX > gridX) && (touchX < (rv.getWidth() - gridX)));
-                            break;
-                    }
-                    return super.onInterceptTouchEvent(rv, e);
-                }
-            });
+//            galleryPager.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+//                float touchX;
+//                int gridX;
+//
+//                @Override
+//                public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+//                    switch (e.getAction()) {
+//                        case MotionEvent.ACTION_DOWN:
+//                            touchX = rv.getX() + e.getRawX();
+//                            gridX = rv.getWidth() / 5;
+//                            canGalleryPagerScroll = !((touchX > gridX) && (touchX < (rv.getWidth() - gridX)));
+//                            break;
+//                    }
+//                    return super.onInterceptTouchEvent(rv, e);
+//                }
+//            });
 
             pagerSnapHelper.attachToRecyclerView(galleryPager);
         }
@@ -236,12 +253,34 @@ public final class GalleryFragment extends BaseFragment {
                 @Override
                 public void onItemLongClick(View view, int position) {
                     lazyLoadAdapter();
-                    askOpenDir(adapter.getItem(position), position);
+                    final MediaData media = adapter.getItem(position);
+                    final int finalPosition = position;
+
+                    new AlertDialog.Builder(view.getContext())
+                            .setItems(new String[]{
+                                "Open file manager",
+                                    "Delete " + media.toTypeString(),
+                                    "Cancel"
+                            }, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    dialogInterface.dismiss();
+                                    switch (i) {
+                                        case 0:
+                                            askOpenDir(media, finalPosition);
+                                            break;
+                                        case 1:
+                                            askDelete(media, finalPosition);
+                                            break;
+                                    }
+                                }
+                            })
+                            .show();
                 }
 
                 private void askOpenDir(final MediaData media, final int position) {
                     new AlertDialog.Builder(getContext())
-                            .setMessage("Open this " + (media.isPhoto() ? "photo" : "video") + " in file manager?")
+                            .setMessage("Open this " + media.toTypeString() + " in file manager?")
                             .setNegativeButton("No", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
@@ -263,7 +302,7 @@ public final class GalleryFragment extends BaseFragment {
 
                 private void askDelete(final MediaData media, final int position) {
                     new AlertDialog.Builder(getContext())
-                    .setMessage("Delete this " + (media.isPhoto() ? "photo" : "video") + "?")
+                    .setMessage("Delete this " + media.toTypeString() + "?")
                     .setNegativeButton("No", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -277,7 +316,7 @@ public final class GalleryFragment extends BaseFragment {
                             File file = new File(media.getPath());
                             if (file.delete()) {
                                 adapter.removeItem(position);
-                                msg = (media.isPhoto() ? "Photo" : "Video") + " has been deleted";
+                                msg = TStrings.capitalize(media.toTypeString()) + " has been deleted";
                             }
                             else {
                                 msg = "Failed to delete file!";
@@ -790,18 +829,30 @@ public final class GalleryFragment extends BaseFragment {
 
             private void lazyWritingPhoto(MediaData polaroid) {
                 if (polaroid.isPhoto()) {
-                    ((TouchImageView) mView).resetZoom();
+                    final TouchImageView imView = (TouchImageView) mView;
+
+                    imView.resetZoom();
 
                     int totalSpan = LayoutManagerUtils.getSpanCount(galleryPager.getLayoutManager());
                     RequestOptions requestOptions = new RequestOptions()
                             .dontAnimate()
-                            .override(galleryPager.getRootView().getWidth() * totalSpan, galleryPager.getRootView().getHeight() * totalSpan)
+                            .override(galleryPager.getRootView().getWidth() * totalSpan * 2, galleryPager.getRootView().getHeight() * totalSpan * 2)
                             .placeholder(android.R.drawable.ic_menu_gallery);
 
                     Glide.with(GalleryFragment.this)
                             .load(polaroid.getPath())
                             .apply(requestOptions)
-                            .into((TouchImageView) mView);
+                            .into(imView);
+
+                    imView.setOnTouchImageViewListener(new TouchImageView.OnTouchImageViewListener() {
+                        @Override
+                        public void onMove() {
+                            float rectXL = imView.getZoomedRect().left,
+                                    rectXR = imView.getZoomedRect().right;
+
+                            canGalleryPagerScroll = (rectXL == 0.0f || rectXR == 1.0f);
+                        }
+                    });
                 }
             }
 

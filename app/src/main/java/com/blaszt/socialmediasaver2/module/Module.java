@@ -1,7 +1,6 @@
 package com.blaszt.socialmediasaver2.module;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.os.Build;
 import android.widget.Toast;
 
@@ -22,13 +21,13 @@ public class Module extends Base {
 
     private WeakReference<Context> contextWeakReference;
 
-    public Module(Context context, String apkName) {
+    public Module(Context context, String modName) {
         contextWeakReference = new WeakReference<>(context);
 
-        apkName = sanitizeApkName(apkName);
-        DexClassLoader classLoader = getDexClassLoader(context, apkName);
+        modName = sanitizeModName(modName);
+        DexClassLoader classLoader = getDexClassLoader(context, modName);
         try {
-            moduleClass = classLoader.loadClass(getModuleClass(context, apkName));
+            moduleClass = classLoader.loadClass(getModuleClass(context, modName));
             moduleInstance = moduleClass.newInstance();
         } catch (IllegalAccessException e) {
             throw new ModuleNotValid(e.getMessage());
@@ -39,7 +38,7 @@ public class Module extends Base {
         }
     }
 
-    public static File[] getAllModulesApk(Context context) {
+    public static File[] getAllModules(Context context) {
         return getModulesBaseDir(context).listFiles();
     }
 
@@ -53,24 +52,24 @@ public class Module extends Base {
         return modulesDirectory;
     }
 
-    private DexClassLoader getDexClassLoader(Context context, String apkName) {
+    private DexClassLoader getDexClassLoader(Context context, String modName) {
         DexClassLoader dexClassLoader;
-        dexClassLoader = new DexClassLoader(getApkFile(context, apkName).getAbsolutePath(), getOptimizedDirectory(context).getAbsolutePath(), null, ClassLoader.getSystemClassLoader().getParent());
+        dexClassLoader = new DexClassLoader(getModFile(context, modName).getAbsolutePath(), getOptimizedDirectory(context).getAbsolutePath(), null, ClassLoader.getSystemClassLoader().getParent());
         return dexClassLoader;
     }
 
-    private String sanitizeApkName(String apkName) {
-        int lastPath = apkName.lastIndexOf(File.separator);
+    private String sanitizeModName(String modName) {
+        int lastPath = modName.lastIndexOf(File.separator);
         if (lastPath != -1) {
-            apkName = apkName.substring(lastPath + 1);
+            modName = modName.substring(lastPath + 1);
         }
-        return apkName.split("\\.")[0];
+        return modName.split("\\.")[0];
     }
 
-    private File getApkFile(Context context, String apkName) {
-        File apkFile;
-        apkFile = new File(getModulesBaseDir(context), String.format("%s.apk", apkName));
-        return apkFile;
+    private File getModFile(Context context, String modName) {
+        File modFile;
+        modFile = new File(getModulesBaseDir(context), String.format("%s.mod", modName));
+        return modFile;
     }
 
     private File getOptimizedDirectory(Context context) {
@@ -83,9 +82,9 @@ public class Module extends Base {
         return codeCacheDir;
     }
 
-    private String getModuleClass(Context context, String apkName/*, String className*/) {
+    private String getModuleClass(Context context, String modName/*, String className*/) {
         String className = ".Module";
-        return context.getApplicationContext().getPackageName() + ".module" + (apkName != null ? ("." + apkName.toLowerCase(Locale.US) + className) : className);
+        return context.getApplicationContext().getPackageName() + ".module" + (modName != null ? ("." + modName.toLowerCase(Locale.US) + className) : className);
     }
 
     @Override
