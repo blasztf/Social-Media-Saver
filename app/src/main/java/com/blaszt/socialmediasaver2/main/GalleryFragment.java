@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -235,7 +236,29 @@ public final class GalleryFragment extends BaseFragment {
                 @Override
                 public void onItemLongClick(View view, int position) {
                     lazyLoadAdapter();
-                    askDelete(adapter.getItem(position), position);
+                    askOpenDir(adapter.getItem(position), position);
+                }
+
+                private void askOpenDir(final MediaData media, final int position) {
+                    new AlertDialog.Builder(getContext())
+                            .setMessage("Open this " + (media.isPhoto() ? "photo" : "video") + " in file manager?")
+                            .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    dialogInterface.dismiss();
+                                    askDelete(media, position);
+                                }
+                            })
+                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                                    Uri uriPath = Uri.parse(new File(media.getPath()).getParent());
+                                    intent.setDataAndType(uriPath, "resource/folder");
+                                    startActivity(intent);
+                                }
+                            })
+                            .show();
                 }
 
                 private void askDelete(final MediaData media, final int position) {
@@ -254,7 +277,7 @@ public final class GalleryFragment extends BaseFragment {
                             File file = new File(media.getPath());
                             if (file.delete()) {
                                 adapter.removeItem(position);
-                                msg = "File has been deleted";
+                                msg = (media.isPhoto() ? "Photo" : "Video") + " has been deleted";
                             }
                             else {
                                 msg = "Failed to delete file!";
