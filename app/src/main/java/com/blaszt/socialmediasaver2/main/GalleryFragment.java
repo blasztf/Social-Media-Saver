@@ -468,7 +468,7 @@ public final class GalleryFragment extends BaseFragment {
 
             mediaHolder.bindPolaroid(polaroid);
             mediaHolder.bindDate(polaroid.getReadableDate());
-            mediaHolder.bindType(polaroid.isPhoto() ? "Photo" : "Video");
+            mediaHolder.bindType(TStrings.capitalize(polaroid.toTypeString()));
             mediaHolder.bindSize(polaroid.getReadableSize());
         }
 
@@ -547,8 +547,9 @@ public final class GalleryFragment extends BaseFragment {
                         .placeholder(android.R.drawable.ic_menu_gallery);
 
                 Glide.with(GalleryFragment.this)
-                        .load(getItem(position).getPath())
+                        .asBitmap()
                         .apply(requestOptions)
+                        .load(getItem(position).getPath())
                         .into(expandedImage);
 
                 ZoomUtils.getInstance(GalleryFragment.this.getSupportActivity()).zoomIn(thumbView, expandedImage, new ZoomUtils.OnZoomFinishedListener() {

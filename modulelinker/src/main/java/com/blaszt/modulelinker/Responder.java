@@ -5,6 +5,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.blaszt.modulelinker.helper.HttpLogger;
 import com.blaszt.modulelinker.helper.IOUtils;
 
 import java.io.BufferedReader;
@@ -29,6 +30,8 @@ public class Responder {
     private static Responder mInstance;
 
 //    private WeakReference<Context> context;
+
+    private CookieManager cookieManager;
     private Options options;
 //    private BackTask task;
 
@@ -43,6 +46,8 @@ public class Responder {
     }
 
     private Responder(Context context) {
+        cookieManager = new CookieManager();
+        CookieHandler.setDefault(cookieManager);
 //        this.context = new WeakReference<>(context);
 //        HttpURLConnection.setFollowRedirects(true);
     }
@@ -163,27 +168,25 @@ public class Responder {
         StringBuilder cookies = new StringBuilder();
         int responseCode = -1;
 
-        CookieManager cookieManager = new CookieManager();
-        CookieHandler.setDefault(cookieManager);
+//        HttpLogger httpLogger = new HttpLogger("resp");
 
         HttpURLConnection connection = null;
         try {
-            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
             connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setInstanceFollowRedirects(false);
-            HttpURLConnection.setFollowRedirects(false);
+            connection.setInstanceFollowRedirects(true);
+            HttpURLConnection.setFollowRedirects(true);
 
             setConnectionMethod(connection, method);
             setConnectionHeaders(connection, options.requestHeaders);
             setConnectionTimeout(connection, options.timeout);
 
-            Map<String, List<String>> headerFields = connection.getHeaderFields();
-            supplyRequestHeaders(headerFields, options.headers);
-            supplyRequestCookies(headerFields, cookieManager, options.cookies);
-
             if ((responseCode = connection.getResponseCode()) == HttpURLConnection.HTTP_OK) {
                 //read response
                 response = convertStreamToString(connection.getInputStream());
+
+                Map<String, List<String>> headerFields = connection.getHeaderFields();
+                supplyRequestHeaders(headerFields, options.headers);
+                supplyRequestCookies(headerFields, cookieManager, options.cookies);
             }
             else{
 ////                 is redirected?
@@ -212,13 +215,16 @@ public class Responder {
                     options.errorCode = responseCode;
                 }
             }
+//            httpLogger.writeLog("::Response::\n ||\n V\n" + response);
             options.errorCode = responseCode;
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+//            httpLogger.writeLog("::Malformed_URL::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         } catch (IOException e) {
-            e.printStackTrace();
+//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
+        } catch (Exception e) {
+//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
         }
 
         IOUtils.disconnectQuietly(connection);

@@ -4,6 +4,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.blaszt.modulelinker.Responder;
+import com.blaszt.modulelinker.helper.HttpLogger;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -20,8 +21,8 @@ public class Module extends com.blaszt.modulelinker.Base {
     private static final String HEADER_AUTHORIZATION = "Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw";
     private static final String HEADER_CONNECTION = "keep-alive";
     private static final String HEADER_HOST = "api.twitter.com";
-    private static final String HEADER_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36";
-//    private static final String HEADER_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.133 Safari/537.36";
+//    private static final String HEADER_USER_AGENT = "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)";
+    private static final String HEADER_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.133 Safari/537.36";
     private static final String HEADER_TE = "Trailers";
     private static final String HEADER_HOST_ = "twitter.com";
     private static final String HEADER_UPGRADE_INSECURE_REQUESTS = "1";
@@ -115,7 +116,7 @@ public class Module extends com.blaszt.modulelinker.Base {
     }
 
     private boolean isTweetContainPhoto(String response) {
-        return response != null && response.contains("class=\"AdaptiveMedia-photoContainer");
+        return response != null && (response.contains("class=\"AdaptiveMedia-photoContainer") || response.contains("class=\"card-photo"));
     }
 
     private boolean isGuestTokenStillValid() {
@@ -223,21 +224,46 @@ public class Module extends com.blaszt.modulelinker.Base {
 
     private String requestTweet(String url, Responder.Options options) {
         HashMap<String, String> headers = new HashMap<>();
-        headers.put("Connection", HEADER_CONNECTION);
-        headers.put("User-Agent", HEADER_USER_AGENT);
-        headers.put("TE", HEADER_TE);
-        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
-        headers.put("Host", HEADER_HOST_);
-        headers.put("Accept", HEADER_ACCEPT);
+//        headers.put("Connection", HEADER_CONNECTION);
+        headers.put("User-Agent", "");
+//        headers.put("TE", HEADER_TE);
+//        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
+//        headers.put("Host", HEADER_HOST_);
+//        headers.put("Origin", "https://twitter.com");
+//        headers.put("Accept", HEADER_ACCEPT);
 //        headers.put("Accept-Encoding", HEADER_ACCEPT_ENCODING);
-        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
-        headers.put("Referer", "https://www.google.com/");
+//        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
+//        headers.put("Referer", "https://www.google.com/");
 
         options.reset()
                 .requestResponseCookies(true)
                 .setRequestHeaders(headers);
 
         return Responder.with(null).apply(options).getResponse(url);
+    }
+
+    private String requestTweetConfig(String url, Responder.Options options) {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("Connection", HEADER_CONNECTION);
+        headers.put("User-Agent", HEADER_USER_AGENT);
+        headers.put("TE", HEADER_TE);
+        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
+        headers.put("Host", HEADER_HOST_);
+        headers.put("Origin", "https://twitter.com");
+        headers.put("Accept", HEADER_ACCEPT);
+        headers.put("Accept-Encoding", HEADER_ACCEPT_ENCODING);
+        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
+        headers.put("Referer", url);
+
+        options.reset()
+                .requestResponseCookies(true)
+                .setRequestHeaders(headers);
+//        new HttpLogger("tw.resp").writeLog("Collecting cookie...");
+        String response = Responder.with(null).apply(options).getResponse(url);
+//        new HttpLogger("tw.resp").writeLog(response);
+        String config = String.format("https://api.twitter.com/2/timeline/conversation/%s.json", url.substring(url.lastIndexOf("/") + 1, url.lastIndexOf("?")));
+//        new HttpLogger("tw.resp").writeLog("Config : " + config);
+        return Responder.with(null).apply(options).getResponse(config);
     }
 
     private String requestTweetFallback(String url, Responder.Options options) {

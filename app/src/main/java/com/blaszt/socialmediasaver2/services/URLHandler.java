@@ -138,10 +138,10 @@ public final class URLHandler extends IntentService implements URLHandlerListene
 
     @Override
     public boolean isURLValid(String url) {
-        File[] apks = Module.getAllModules(this);
+        File[] mods = Module.getAllModules(this);
         Module module;
-        for (File apk : apks) {
-            module = new Module(this, apk.getName());
+        for (File mod : mods) {
+            module = new Module(this, mod.getName());
             if (module.check(url)) {
                 this.module = module;
                 return true;
