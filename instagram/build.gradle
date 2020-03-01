@@ -3,16 +3,21 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 28
 
-
+    compileOptions {
+        sourceCompatibility 1.8
+        targetCompatibility 1.8
+    }
 
     defaultConfig {
         applicationId "com.blaszt.socialmediasaver2.module.instagram"
-        minSdkVersion 16
+        minSdkVersion 19
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+//        multiDexEnabled true
 
     }
 
@@ -33,4 +38,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation project(':modulelinker')
     implementation 'com.google.code.gson:gson:2.8.5'
+//    implementation 'org.brunocvcunha.instagram4j:instagram4j:1.13'
+//    implementation 'com.github.charlieAndroidDev:Instagram4Android:0.2.7'
+//    implementation 'com.android.support:multidex:1.0.3'
+
 }

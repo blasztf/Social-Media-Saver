@@ -93,11 +93,11 @@ public class Module extends Base {
             Method method = moduleClass.getMethod("findMediaURL", String.class);
             return (String[]) method.invoke(moduleInstance, url); // Media URL
         } catch (NoSuchMethodException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         } catch (IllegalAccessException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         } catch (InvocationTargetException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         }
     }
 
@@ -163,11 +163,11 @@ public class Module extends Base {
             Method method = moduleClass.getMethod("getLogo");
             return (String) method.invoke(moduleInstance); // App Logo
         } catch (NoSuchMethodException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         } catch (IllegalAccessException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         } catch (InvocationTargetException e) {
-            throw new ModuleNotValid(e.getMessage());
+            throw (ModuleNotValid) new ModuleNotValid(e.getMessage()).initCause(e);
         }
     }
 

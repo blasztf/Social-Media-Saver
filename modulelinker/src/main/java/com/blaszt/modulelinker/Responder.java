@@ -4,18 +4,22 @@ import android.app.IntentService;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import com.blaszt.modulelinker.helper.HttpLogger;
 import com.blaszt.modulelinker.helper.IOUtils;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.CookieHandler;
 import java.net.CookieManager;
-import java.net.CookiePolicy;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -166,9 +170,10 @@ public class Responder {
     private String getResponse(int method, String url, Options options, Listener listener) {
         String response = null;
         StringBuilder cookies = new StringBuilder();
-        int responseCode = -1;
+        int responseCode = 0;
 
-//        HttpLogger httpLogger = new HttpLogger("resp");
+        HttpLogger httpLogger = new HttpLogger("resp");
+        httpLogger.writeLog("::URL::\n ||\n V\n" + url);
 
         HttpURLConnection connection = null;
         try {
@@ -176,13 +181,19 @@ public class Responder {
             connection.setInstanceFollowRedirects(true);
             HttpURLConnection.setFollowRedirects(true);
 
+            if (method == Options.Method.POST && options.requestHeaders != null) {
+                options.requestHeaders.put("Content-Type", "application/x-www-form-urlencoded");
+            }
+
             setConnectionMethod(connection, method);
             setConnectionHeaders(connection, options.requestHeaders);
             setConnectionTimeout(connection, options.timeout);
+            setConnectionData(connection, options.data);
 
             if ((responseCode = connection.getResponseCode()) == HttpURLConnection.HTTP_OK) {
                 //read response
                 response = convertStreamToString(connection.getInputStream());
+                options.errorCode = responseCode;
 
                 Map<String, List<String>> headerFields = connection.getHeaderFields();
                 supplyRequestHeaders(headerFields, options.headers);
@@ -215,16 +226,17 @@ public class Responder {
                     options.errorCode = responseCode;
                 }
             }
-//            httpLogger.writeLog("::Response::\n ||\n V\n" + response);
+            httpLogger.writeLog("::Response::\n ||\n V\n" + response);
             options.errorCode = responseCode;
         } catch (MalformedURLException e) {
-//            httpLogger.writeLog("::Malformed_URL::\n ||\n V\n" + httpLogger.getMessageLog(e));
+            httpLogger.writeLog("::Malformed_URL::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         } catch (IOException e) {
-//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
+            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         } catch (Exception e) {
-//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
+            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
+            options.errorCode = -1;
         }
 
         IOUtils.disconnectQuietly(connection);
@@ -310,6 +322,35 @@ public class Responder {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 connection.setRequestProperty(entry.getKey(), entry.getValue());
             }
+        }
+    }
+
+    private void setConnectionData(@NonNull HttpURLConnection connection, @Nullable Map<String, String> data) {
+        OutputStream os;
+        String parsedData = parseData(data);
+
+        if (parsedData != null) {
+            connection.setDoOutput(true);
+            try {
+                os = new BufferedOutputStream(connection.getOutputStream());
+                os.write(parsedData.getBytes());
+                os.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private String parseData(Map<String, String> data) {
+        StringBuilder parsedData = null;
+        if (data == null) return null;
+        else {
+            parsedData = new StringBuilder();
+            for (Map.Entry<String, String> entry : data.entrySet()) {
+                parsedData.append(entry.getKey()).append('=').append(entry.getValue());
+                parsedData.append('&');
+            }
+            return parsedData.deleteCharAt(parsedData.length()-1).toString();
         }
     }
 
@@ -400,6 +441,7 @@ public class Responder {
         private Map<String, String> requestHeaders;
         private Map<String, String> headers;
         private ArrayList<HttpCookie> cookies;
+        private Map<String, String> data;
 
         public static Options create() {
             return new Options();
@@ -421,6 +463,11 @@ public class Responder {
 
         public Options setRequestHeaders(Map<String, String> headers) {
             this.requestHeaders = headers;
+            return this;
+        }
+
+        public Options setData(Map<String, String> data) {
+            this.data = data;
             return this;
         }
 

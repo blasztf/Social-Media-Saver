@@ -1,10 +1,8 @@
 package com.blaszt.socialmediasaver2.module.instagram;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Base64;
-
 import com.blaszt.modulelinker.Responder;
+import com.blaszt.modulelinker.helper.HttpLogger;
+import com.blaszt.socialmediasaver2.module.instagram.addon.ModuleStory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,6 +11,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 public class Module extends com.blaszt.modulelinker.Base {
+
+    private ModuleStory moduleInstaStory;
+    HttpLogger log = new HttpLogger("in");
+
+    public Module() {
+        moduleInstaStory = new ModuleStory();
+    }
 
     @Override
     public String getBaseDir() {
@@ -32,15 +37,25 @@ public class Module extends com.blaszt.modulelinker.Base {
     @Override
     public String[] findMediaURL(String url) {
         String[] mediaCollections;
-        try {
-            String response = Responder.with(null).getResponse(appendQuery(url, "__a=1"));
-            JsonObject container = new JsonParser().parse(response).getAsJsonObject();
-            container = container.get("graphql").getAsJsonObject();
-            container = container.get("shortcode_media").getAsJsonObject();
 
-            mediaCollections = getMediaCollections(container);
-        } catch (NullPointerException e) {
-            mediaCollections = new String[0];
+        if (moduleInstaStory.isValid(url)) {
+            log.writeLog("Module :: It is stories!");
+            moduleInstaStory.setup();
+            moduleInstaStory.setUsername(url);
+            mediaCollections = moduleInstaStory.getStoriesCollections();
+        }
+        else {
+            log.writeLog("Module :: It is not stories!");
+            try {
+                String response = Responder.with(null).getResponse(appendQuery(url, "__a=1"));
+                JsonObject container = new JsonParser().parse(response).getAsJsonObject();
+                container = container.get("graphql").getAsJsonObject();
+                container = container.get("shortcode_media").getAsJsonObject();
+
+                mediaCollections = getMediaCollections(container);
+            } catch (NullPointerException e) {
+                mediaCollections = new String[0];
+            }
         }
 
         return mediaCollections;
@@ -53,7 +68,7 @@ public class Module extends com.blaszt.modulelinker.Base {
 
     @Override
     protected boolean isValid(String url) {
-        return url.matches("https?://(www\\.)?instagram\\.com/p/[a-zA-Z0-9_\\-]{11,}/?.*");
+        return url.matches("https?://(www\\.)?instagram\\.com/p/[a-zA-Z0-9_\\-]{11,}/?.*") || moduleInstaStory.isValid(url);
     }
 
     private String appendQuery(String uriString, String queryString) {
