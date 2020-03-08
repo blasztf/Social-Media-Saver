@@ -1,9 +1,6 @@
-package com.blaszt.socialmediasaver2.module.instagram.addon.api;
-
-import android.util.Log;
+package com.blaszt.socialmediasaver2.module.instagram.helper;
 
 import com.blaszt.modulelinker.Responder;
-import com.blaszt.modulelinker.helper.HttpLogger;
 
 import java.lang.reflect.Field;
 import java.net.HttpCookie;

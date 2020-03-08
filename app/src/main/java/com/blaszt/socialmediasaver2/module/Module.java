@@ -16,18 +16,36 @@ import java.util.Locale;
 import dalvik.system.DexClassLoader;
 
 public class Module extends Base {
+
+    static final String EXTENSION = ".mod";
+
     private Class<?> moduleClass;
     private Object moduleInstance;
 
     private WeakReference<Context> contextWeakReference;
 
-    public Module(Context context, String modName) {
-        contextWeakReference = new WeakReference<>(context);
+    private Module() {}
 
-        modName = sanitizeModName(modName);
-        DexClassLoader classLoader = getDexClassLoader(context, modName);
+    Module(Context context, File modFile) {
+        setContext(context);
+
+        String modName = sanitizeModName(modFile.getName());
+
+        DexClassLoader classLoader = getDexClassLoader(contextWeakReference.get(), modFile);
+        setupModule(classLoader, modName);
+    }
+
+    void setContext(Context context) {
+        contextWeakReference = new WeakReference<>(context);
+    }
+
+    Context getContext() {
+        return contextWeakReference.get();
+    }
+
+    void setupModule(ClassLoader classLoader, String modName) {
         try {
-            moduleClass = classLoader.loadClass(getModuleClass(context, modName));
+            moduleClass = classLoader.loadClass(getModuleClass(contextWeakReference.get(), modName));
             moduleInstance = moduleClass.newInstance();
         } catch (IllegalAccessException e) {
             throw new ModuleNotValid(e.getMessage());
@@ -38,38 +56,20 @@ public class Module extends Base {
         }
     }
 
-    public static File[] getAllModules(Context context) {
-        return getModulesBaseDir(context).listFiles();
-    }
-
-    public static File getModulesBaseDir(Context context) {
-        File modulesDirectory;
-        modulesDirectory = new File(context.getExternalFilesDir("Modules"), String.format("%smodules%s", File.separator, File.separator));
-        if (!modulesDirectory.exists() || !modulesDirectory.isDirectory()) {
-            //noinspection ResultOfMethodCallIgnored
-            modulesDirectory.mkdirs();
-        }
-        return modulesDirectory;
-    }
-
-    private DexClassLoader getDexClassLoader(Context context, String modName) {
+    private DexClassLoader getDexClassLoader(Context context, File modFile) {
         DexClassLoader dexClassLoader;
-        dexClassLoader = new DexClassLoader(getModFile(context, modName).getAbsolutePath(), getOptimizedDirectory(context).getAbsolutePath(), null, ClassLoader.getSystemClassLoader().getParent());
+        dexClassLoader = new DexClassLoader(modFile.getAbsolutePath(), getOptimizedDirectory(context).getAbsolutePath(), null, ClassLoader.getSystemClassLoader().getParent());
         return dexClassLoader;
     }
 
-    private String sanitizeModName(String modName) {
+    String sanitizeModName(String modName) {
         int lastPath = modName.lastIndexOf(File.separator);
         if (lastPath != -1) {
             modName = modName.substring(lastPath + 1);
         }
-        return modName.split("\\.")[0];
-    }
 
-    private File getModFile(Context context, String modName) {
-        File modFile;
-        modFile = new File(getModulesBaseDir(context), String.format("%s.mod", modName));
-        return modFile;
+        if (!".mod".equalsIgnoreCase(modName.substring(modName.length() - 4))) throw new IllegalStateException("Wrong mod file extension!");
+        else return modName.split("\\.")[0];
     }
 
     private File getOptimizedDirectory(Context context) {
@@ -183,7 +183,8 @@ public class Module extends Base {
         }
     }
 
-    private class ModuleNotValid extends RuntimeException {
+    class ModuleNotValid extends RuntimeException {
+        ModuleNotValid() { this("Module not valid!"); }
         ModuleNotValid(String message) {
             super(message);
         }

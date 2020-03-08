@@ -1,9 +1,5 @@
 package com.blaszt.socialmediasaver2.module.instagram;
 
-import com.blaszt.modulelinker.Responder;
-import com.blaszt.socialmediasaver2.module.instagram.addon.ModuleStory;
-import com.blaszt.socialmediasaver2.module.instagram.addon.api.ILogin;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

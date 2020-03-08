@@ -1,1 +1,1 @@
-include ':app', ':modulelinker', ':instagram', ':twitter', ':toolkit'
+include ':app', ':modulelinker', ':instagram', ':twitter', ':toolkit', ':module-instagram', ':module-base'

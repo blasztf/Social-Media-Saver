@@ -1,10 +1,6 @@
-package com.blaszt.modulelinker;
+package com.blaszt.socialmediasaver2.module_base;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-
-import com.blaszt.modulelinker.helper.HttpLogger;
-import com.blaszt.modulelinker.helper.IOUtils;
+import com.blaszt.socialmediasaver2.module_base.helper.IOUtils;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -26,41 +22,30 @@ import java.util.List;
 import java.util.Map;
 
 public class Responder {
-    private static Responder mInstance;
 
-//    private WeakReference<Context> context;
+    private static Responder mInstance;
 
     private CookieManager cookieManager;
     private Options options;
-//    private BackTask task;
 
-    public static synchronized Responder with(Object context) {
-//        if (mInstance == null/* || mInstance.getContext() == null*/) {
-            mInstance = new Responder(context);
-//        }
+    private static synchronized Responder get() {
+        if (mInstance == null) {
+            mInstance = new Responder();
+        }
 
         mInstance.options = Options.create();
 
         return mInstance;
     }
 
-    private Responder(Object context) {
-        cookieManager = new CookieManager();
-        CookieHandler.setDefault(cookieManager);
-//        this.context = new WeakReference<>(context);
-//        HttpURLConnection.setFollowRedirects(true);
+    protected static synchronized void inject(Base module) {
+        module.setResponder(Responder.get());
     }
 
     private Responder() {
+        cookieManager = new CookieManager();
+        CookieHandler.setDefault(cookieManager);
     }
-
-//    private Context getContext() {
-//        return context.get();
-//    }
-//
-//    private void clearContext() {
-//        context.clear();
-//    }
 
     public Responder apply(Options options) {
         this.options = options;
@@ -73,102 +58,13 @@ public class Responder {
         return response;
     }
 
-//    private void getResponse(String url, Listener listener) {
-//        if (task == null) {
-//            task = new BackTask(getContext());
-//        }
-//
-//        if (!task.isAlive()) {
-//            task.start();
-//        }
-//
-//        Message message = BackTask.backHandler.obtainMessage();
-//        Bundle data = new Bundle();
-//        data.putString(BackTask.BUNDLE_URL, url);
-//        data.putSerializable(BackTask.BUNDLE_OPTIONS, options);
-//        data.putSerializable(BackTask.BUNDLE_LISTENER, listener);
-//        message.setData(data);
-//        BackTask.backHandler.sendMessage(message);
-//    }
-//
-//    private static class BackTask extends Thread {
-//        private static final String BUNDLE_URL = "BackTask.BUNDLE_URL";
-//        private static final String BUNDLE_OPTIONS = "BackTask.BUNDLE_OPTIONS";
-//        private static final String BUNDLE_LISTENER = "BackTask.BUNDLE_LISTENER";
-//        private static final String BUNDLE_RESPONSE = "BackTask.BUNDLE_RESPONSE";
-//
-//        static Handler frontHandler;
-//        static Handler backHandler;
-//
-//        BackTask(Context context) {
-//            super();
-//            setName("BackTask");
-//            frontHandler = new FrontHandler(context.getMainLooper());
-//        }
-//
-//        @Override
-//        public void run() {
-//            Looper.prepare();
-//            backHandler = new BackHandler();
-//            Looper.loop();
-//        }
-//
-//        private static class FrontHandler extends Handler {
-//            private FrontHandler(Looper looper) {
-//                super(looper);
-//            }
-//
-//            @Override
-//            public void handleMessage(Message msg) {
-//                String response;
-//                Listener listener;
-//                if (msg.getData() != null
-//                        && (listener = (Listener) msg.getData().getSerializable(BUNDLE_LISTENER)) != null) {
-//                    response = msg.getData().getString(BUNDLE_RESPONSE);
-//                    if (response != null) {
-//                        listener.onSuccess(response);
-//                    } else {
-//                        listener.onError(msg.arg1);
-//                    }
-//                }
-//            }
-//        }
-//
-//        private static class BackHandler extends Handler {
-//            @Override
-//            public void handleMessage(Message msg) {
-//                String url;
-//                Options options;
-//                Listener listener;
-//                if (frontHandler != null
-//                        && msg.getData() != null
-//                        && (url = msg.getData().getString(BUNDLE_URL)) != null
-//                        && (listener = (Listener) msg.getData().getSerializable(BUNDLE_LISTENER)) != null) {
-//
-//                    if ((options = (Options) msg.getData().getSerializable(BUNDLE_OPTIONS)) == null) {
-//                        options = Options.create();
-//                    }
-//                    String response = new Responder().apply(Options.newCopy(options)).getResponse(url);
-//
-//                    Message message = frontHandler.obtainMessage();
-//                    Bundle data = new Bundle();
-//                    data.putString(BUNDLE_RESPONSE, response);
-//                    data.putSerializable(BUNDLE_LISTENER, listener);
-//                    message.setData(data);
-//                    message.arg1 = options.errorCode;
-//                    frontHandler.sendMessage(message);
-//                }
-//            }
-//        }
-//    }
-
     private String getResponse(int method, String url, Options options, Listener listener) {
         String response = null;
         StringBuilder cookies = new StringBuilder();
         int responseCode = 0;
 
-        HttpLogger httpLogger = new HttpLogger("resp");
-        httpLogger.writeLog("::URL::\n ||\n V\n" + url);
+//        HttpLogger httpLogger = new HttpLogger("resp");
+//        httpLogger.writeLog("::URL::\n ||\n V\n" + url);
 
         HttpURLConnection connection = null;
         try {
@@ -197,8 +93,8 @@ public class Responder {
             else{
 ////                 is redirected?
                 if (responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
-                    responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                    responseCode == HttpURLConnection.HTTP_SEE_OTHER)
+                        responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                        responseCode == HttpURLConnection.HTTP_SEE_OTHER)
                 {
                     url = connection.getHeaderField("Location");
                     if (url.startsWith("/")) {
@@ -221,16 +117,16 @@ public class Responder {
                     options.errorCode = responseCode;
                 }
             }
-            httpLogger.writeLog("::Response::\n ||\n V\n" + response);
+//            httpLogger.writeLog("::Response::\n ||\n V\n" + response);
             options.errorCode = responseCode;
         } catch (MalformedURLException e) {
-            httpLogger.writeLog("::Malformed_URL::\n ||\n V\n" + httpLogger.getMessageLog(e));
+//            httpLogger.writeLog("::Malformed_URL::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         } catch (IOException e) {
-            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
+//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         } catch (Exception e) {
-            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
+//            httpLogger.writeLog("::IO_Error::\n ||\n V\n" + httpLogger.getMessageLog(e));
             options.errorCode = -1;
         }
 
@@ -247,9 +143,8 @@ public class Responder {
             return response;
         }
     }
-
-    @Nullable
-    private String convertStreamToString(@Nullable InputStream is) {
+    
+    private String convertStreamToString(InputStream is) {
         String result = null;
         if (is != null) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -312,7 +207,7 @@ public class Responder {
         }
     }
 
-    private void setConnectionHeaders(@NonNull HttpURLConnection connection, @Nullable Map<String, String> headers) {
+    private void setConnectionHeaders(HttpURLConnection connection, Map<String, String> headers) {
         if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 connection.setRequestProperty(entry.getKey(), entry.getValue());
@@ -320,7 +215,7 @@ public class Responder {
         }
     }
 
-    private void setConnectionData(@NonNull HttpURLConnection connection, @Nullable Map<String, String> data) {
+    private void setConnectionData(HttpURLConnection connection, Map<String, String> data) {
         OutputStream os;
         String parsedData = parseData(data);
 
@@ -363,8 +258,7 @@ public class Responder {
         }
     }
 
-    @NonNull
-    private Map<String, String> parseHeadersResponse(@Nullable Map<String, List<String>> responseHeaders) {
+        private Map<String, String> parseHeadersResponse(Map<String, List<String>> responseHeaders) {
         Map<String, String> headers = new HashMap<>();
 
         if (responseHeaders != null) {
@@ -379,9 +273,8 @@ public class Responder {
 
         return headers;
     }
-
-    @NonNull
-    private List<HttpCookie> parseCookiesResponse(@Nullable Map<String, List<String>> responseHeaders) {
+    
+    private List<HttpCookie> parseCookiesResponse(Map<String, List<String>> responseHeaders) {
         List<HttpCookie> result = new ArrayList<>();
 
         if (responseHeaders != null) {

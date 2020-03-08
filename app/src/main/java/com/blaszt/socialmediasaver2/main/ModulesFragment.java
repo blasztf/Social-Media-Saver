@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import com.blaszt.socialmediasaver2.R;
 import com.blaszt.socialmediasaver2.module.Module;
+import com.blaszt.socialmediasaver2.module.ModulesCentral;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 
@@ -65,15 +66,7 @@ public final class ModulesFragment extends BaseFragment {
     }
 
     private ArrayList<Module> getModules() {
-        ArrayList<Module> modules = new ArrayList<>();
-        File[] apks = Module.getAllModules(getContext());
-        Module module;
-        for (File apk : apks) {
-            module = new Module(getContext(), apk.getName());
-            modules.add(module);
-        }
-
-        return modules;
+        return new ArrayList<>(ModulesCentral.with(getContext()).getModules());
     }
 
     private class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.ViewHolder> {

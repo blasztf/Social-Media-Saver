@@ -33,4 +33,5 @@
     <string name="pref_key_sort_media">key_sort_media</string>
     <string name="pref_key_recursive">key_recursive</string>
     <string name="pref_key_storage">key_storage</string>
+    <string name="download_media_share_text">Download any media</string>
 </resources>

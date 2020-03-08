@@ -1,4 +1,4 @@
-package com.blaszt.socialmediasaver2.module.instagram.addon.api;
+package com.blaszt.socialmediasaver2.module.instagram.helper;
 
 public class IConstant {
 

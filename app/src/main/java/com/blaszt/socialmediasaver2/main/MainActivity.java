@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.blaszt.socialmediasaver2.R;
 import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
+import com.blaszt.socialmediasaver2.services.URLHandler;
 import com.blaszt.socialmediasaver2.services.URLService;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -59,6 +60,17 @@ public final class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         Thread.setDefaultUncaughtExceptionHandler(new CrashCocoExceptionHandler("sms"));
+
+        Intent intent = getIntent();
+        if (Intent.ACTION_SEND.equals(intent.getAction())) {
+            String url = intent.getStringExtra(Intent.EXTRA_TEXT);
+            intent = new Intent(MainActivity.this, URLHandler.class);
+            intent.setAction(URLHandler.ACTION_HANDLE_URL);
+            intent.putExtra(URLHandler.EXTRA_URL, url);
+            startService(intent);
+            finish();
+            return;
+        }
 
         setContentView(R.layout.activity_main);
         stopURLService();

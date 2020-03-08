@@ -23,6 +23,7 @@ import com.android.volley.VolleyError;
 import com.blaszt.socialmediasaver2.R;
 import com.blaszt.socialmediasaver2.helper.data.VolleyRequest;
 import com.blaszt.socialmediasaver2.module.Module;
+import com.blaszt.socialmediasaver2.module.ModulesCentral;
 import com.bumptech.glide.Glide;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -35,6 +36,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -225,13 +227,13 @@ public class ModulesCentralActivity extends AppCompatActivity {
     }
 
     private static class ModuleInstaller extends AsyncTask<Void, Integer, Boolean> {
-        private File mInstallPath;
+        private WeakReference<Context> mContext;
         private ModuleItem mModule;
         private String mErrorMessage;
         private OnInstalledListener mListener;
 
         public static ModuleInstaller install(Context context, ModuleItem module, OnInstalledListener listener) {
-            ModuleInstaller installer = new ModuleInstaller(Module.getModulesBaseDir(context), module);
+            ModuleInstaller installer = new ModuleInstaller(context, module);
             installer.setListener(listener);
             installer.execute();
             return installer;
@@ -242,8 +244,8 @@ public class ModulesCentralActivity extends AppCompatActivity {
             void onError(String msg);
         }
 
-        private ModuleInstaller(File installPath, ModuleItem module) {
-            mInstallPath = installPath;
+        private ModuleInstaller(Context context, ModuleItem module) {
+            mContext = new WeakReference<>(context);
             mModule = module;
         }
 
@@ -268,13 +270,7 @@ public class ModulesCentralActivity extends AppCompatActivity {
         }
 
         private boolean installModule() {
-            try {
-                File copy = copy(new File(mModule.source), mInstallPath);
-                return true;
-            } catch (IOException e) {
-                mErrorMessage = e.getMessage();
-                return false;
-            }
+            return ModulesCentral.with(mContext.get()).install(mModule.source);
         }
 
         private void makeData(File moduleFile) {

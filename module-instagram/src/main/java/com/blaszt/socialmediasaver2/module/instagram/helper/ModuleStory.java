@@ -1,12 +1,12 @@
-package com.blaszt.socialmediasaver2.module.instagram.addon;
+package com.blaszt.socialmediasaver2.module.instagram.helper;
 
-import com.blaszt.modulelinker.Responder;
-import com.blaszt.modulelinker.helper.HttpLogger;
-import com.blaszt.socialmediasaver2.module.instagram.addon.api.IConstant;
-import com.blaszt.socialmediasaver2.module.instagram.addon.api.IDataUtil;
-import com.blaszt.socialmediasaver2.module.instagram.addon.api.ILogin;
-import com.blaszt.socialmediasaver2.module.instagram.addon.api.INet;
-
+import com.blaszt.socialmediasaver2.module.instagram.api.IConstant;
+import com.blaszt.socialmediasaver2.module.instagram.api.IDataUtil;
+import com.blaszt.socialmediasaver2.module.instagram.api.ILogin;
+import com.blaszt.socialmediasaver2.module.instagram.api.INet;
+import com.blaszt.socialmediasaver2.module_base.Base;
+import com.blaszt.socialmediasaver2.module_base.ModuleNotInjected;
+import com.blaszt.socialmediasaver2.module_base.Responder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -17,39 +17,52 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ModuleStory {
+public class ModuleStory extends Base {
     private static final String URL_VALIDATOR = "https?://(www\\.)?instagram\\.com/([a-zA-Z0-9_.]+)/?";
 
     private static final int MEDIA_IMAGE = 1;
     private static final int MEDIA_VIDEO = 2;
 
     private String username;
-    private Responder responder;
 
-    private boolean isLoggedIn = false;
+    boolean isLoggedIn = false;
 
-    HttpLogger log = new HttpLogger("in.ms");
 
     public ModuleStory() {
 
     }
 
-    public void setup() {
-        if (responder == null) {
-            responder = Responder.with(null);
-        }
-        //log.writeLog("Module Story :: Instantiate module story");
+    @Override
+    public String getBaseDir() {
+        return null;
+    }
+
+    @Override
+    public String getName() {
+        return null;
+    }
+
+    @Override
+    protected String getEncodedImage() {
+        return null;
     }
 
     private void loginInstagram() {
         //log.writeLog("Module Story :: Logging in...");
-        isLoggedIn = ILogin.with(responder)
+        isLoggedIn = ILogin.with(getResponder())
                 .login("ins.bot", "911930347cc0d3fe3f6990925fd62eae");
     }
 
-    public String[] getStoriesCollections() {
+    @Override
+    public String[] findMediaURL(String url) throws ModuleNotInjected {
+        super.findMediaURL(url);
+        setUsername(url);
+        return getStoriesCollections();
+    }
+
+    private String[] getStoriesCollections() {
         String[] collections = new String[0];
-        List<String> stories = null;
+        List<String> stories;
 
         loginInstagram();
 //log.writeLog("Module Story :: Is logged in => " + (isLoggedIn ? "true" : "false"));
@@ -61,10 +74,6 @@ public class ModuleStory {
             if (stories != null) {
 
                 collections = stories.toArray(new String[0]);
-                //log.writeLog("Module Story :: Items => ");
-                for (String c : collections) {
-                    //log.writeLog("  " + c);
-                }
             }
         }
 
@@ -107,14 +116,14 @@ public class ModuleStory {
 
     private List<String> getUserStories(String usernamePk) {
         String url = IConstant.API_URL + String.format(IConstant.API_USER_STORY_FEED, usernamePk);
-        String response = INet.use(responder).asGet(null, Responder.Options.create()).getResponse(url);
+        String response = INet.use(getResponder()).asGet(null, Responder.Options.create()).getResponse(url);
 
         return parseReelResponse(response);
     }
 
     private String getUsernamePk() {
         String url = IConstant.API_URL + String.format(IConstant.API_SEARCH_USERNAME, username);
-        String response = INet.use(responder).asGet(null, Responder.Options.create()).getResponse(url);
+        String response = INet.use(getResponder()).asGet(null, Responder.Options.create()).getResponse(url);
 
 //        System.out.println(response);
 
@@ -125,7 +134,7 @@ public class ModuleStory {
         return url.replaceAll("\\?.+", "");
     }
 
-    public void setUsername(String url) {
+    private void setUsername(String url) {
         url = sanitizeUrl(url);
         Pattern pattern = Pattern.compile(URL_VALIDATOR);
         Matcher matcher = pattern.matcher(url);
@@ -138,8 +147,14 @@ public class ModuleStory {
         //log.writeLog("Module Story :: Search " + username + " stories...");
     }
 
+    @Override
     public boolean isValid(String url) {
         url = sanitizeUrl(url);
         return url.matches(URL_VALIDATOR);
+    }
+
+    @Override
+    public boolean check(String url) {
+        return isValid(url);
     }
 }

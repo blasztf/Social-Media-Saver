@@ -90,7 +90,7 @@ public final class URLService extends Service implements URLServiceListener {
     @Override
     public void handle(String url) {
         Intent intent = new Intent(URLService.this, URLHandler.class);
-        intent.setAction(getPackageName() + ".intent.action.HANDLE_URL");
+        intent.setAction(URLHandler.ACTION_HANDLE_URL);
         intent.putExtra(URLHandler.EXTRA_URL, url);
         startService(intent);
     }

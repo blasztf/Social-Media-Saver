@@ -21,9 +21,15 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter android:label="@string/download_media_share_text">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
-        <service android:name=".services.URLHandler" />
+        <service android:name=".services.URLHandler">
+        </service>
         <service android:name=".services.URLService" />
 
         <receiver android:name=".services.URLService$ServiceBroadcast" />

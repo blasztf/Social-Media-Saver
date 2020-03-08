@@ -1,6 +1,6 @@
-package com.blaszt.socialmediasaver2.module.instagram.addon.api;
+package com.blaszt.socialmediasaver2.module.instagram.api;
 
-import com.blaszt.modulelinker.Responder;
+import com.blaszt.socialmediasaver2.module_base.Responder;
 
 import java.util.HashMap;
 import java.util.Map;

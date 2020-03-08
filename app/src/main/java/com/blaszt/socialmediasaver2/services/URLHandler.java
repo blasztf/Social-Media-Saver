@@ -20,6 +20,7 @@ import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
 import com.blaszt.socialmediasaver2.main.GalleryFragment;
 import com.blaszt.socialmediasaver2.module.Module;
+import com.blaszt.socialmediasaver2.module.ModulesCentral;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,6 +40,7 @@ import java.util.Map;
 
 public final class URLHandler extends IntentService implements URLHandlerListener {
     public static final String EXTRA_URL = URLHandler.class.getName() + ".EXTRA_URL";
+    public static final String ACTION_HANDLE_URL = URLHandler.class.getName() + ".intent.action.HANDLE_URL";
 
     private long currentTimeMillis;
     private int notificationId;
@@ -138,16 +140,12 @@ public final class URLHandler extends IntentService implements URLHandlerListene
 
     @Override
     public boolean isURLValid(String url) {
-        File[] mods = Module.getAllModules(this);
-        Module module;
-        for (File mod : mods) {
-            module = new Module(this, mod.getName());
-            if (module.check(url)) {
-                this.module = module;
-                return true;
-            }
-        }
-        return false;
+        boolean isValid = ModulesCentral.with(this).check(url);
+        if (isValid)
+            this.module = ModulesCentral.with(this).get();
+        else
+            this.module = null;
+        return isValid;
     }
 
     private void cancelProgress() {

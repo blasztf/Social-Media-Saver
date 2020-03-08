@@ -1,7 +1,7 @@
 package com.blaszt.socialmediasaver2.module.instagram;
 
-import com.blaszt.modulelinker.Responder;
-import com.blaszt.modulelinker.helper.HttpLogger;
+
+import com.blaszt.socialmediasaver2.module.instagram.helper.ModuleStory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -9,10 +9,10 @@ import com.google.gson.JsonParser;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class Module extends com.blaszt.modulelinker.Base {
+public class Module extends com.blaszt.socialmediasaver2.module_base.Base {
 
     private ModuleStory moduleInstaStory;
-    HttpLogger log = new HttpLogger("in");
+//    HttpLogger log = n ew HttpLogger("in");
 
     public Module() {
         moduleInstaStory = new ModuleStory();
@@ -20,7 +20,7 @@ public class Module extends com.blaszt.modulelinker.Base {
 
     @Override
     public String getBaseDir() {
-        return "Instagram";
+        return getName();
     }
 
     @Override
@@ -38,15 +38,13 @@ public class Module extends com.blaszt.modulelinker.Base {
         String[] mediaCollections;
 
         if (moduleInstaStory.isValid(url)) {
-            log.writeLog("Module :: It is stories!");
-            moduleInstaStory.setup();
-            moduleInstaStory.setUsername(url);
-            mediaCollections = moduleInstaStory.getStoriesCollections();
+//            log.writeLog("Module :: It is stories!");
+            mediaCollections = moduleInstaStory.findMediaURL(url);
         }
         else {
-            log.writeLog("Module :: It is not stories!");
+//            log.writeLog("Module :: It is not stories!");
             try {
-                String response = Responder.with(null).getResponse(appendQuery(url, "__a=1"));
+                String response = getResponder().getResponse(appendQuery(url, "__a=1"));
                 JsonObject container = new JsonParser().parse(response).getAsJsonObject();
                 container = container.get("graphql").getAsJsonObject();
                 container = container.get("shortcode_media").getAsJsonObject();
@@ -67,7 +65,7 @@ public class Module extends com.blaszt.modulelinker.Base {
 
     @Override
     protected boolean isValid(String url) {
-        return url.matches("https?://(www\\.)?instagram\\.com/p/[a-zA-Z0-9_\\-]{11,}/?.*") || moduleInstaStory.isValid(url);
+        return url.matches("https?://(www\\.)?instagram\\.com/p/[a-zA-Z0-9_\\-]{11,}/?.*") || moduleInstaStory.check(url);
     }
 
     private String appendQuery(String uriString, String queryString) {
