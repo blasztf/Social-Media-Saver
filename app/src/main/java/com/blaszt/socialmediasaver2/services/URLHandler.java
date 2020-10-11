@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
@@ -19,8 +20,13 @@ import com.blaszt.socialmediasaver2.helper.data.StringUtils;
 import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
 import com.blaszt.socialmediasaver2.main.GalleryFragment;
-import com.blaszt.socialmediasaver2.module.Module;
-import com.blaszt.socialmediasaver2.module.ModulesCentral;
+import com.blaszt.socialmediasaver2.plugin.ModPlugin;
+import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
+import com.liulishuo.okdownload.DownloadTask;
+import com.liulishuo.okdownload.core.cause.EndCause;
+import com.liulishuo.okdownload.core.cause.ResumeFailedCause;
+import com.liulishuo.okdownload.core.listener.DownloadListener1;
+import com.liulishuo.okdownload.core.listener.assist.Listener1Assist;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,10 +50,11 @@ public final class URLHandler extends IntentService implements URLHandlerListene
 
     private long currentTimeMillis;
     private int notificationId;
+    private int statusNotificationId;
 
     private NotificationCompat.Builder notification;
 
-    private Module module;
+    private ModPlugin module;
 
     public URLHandler() {
         super("URLHandler");
@@ -62,7 +69,6 @@ public final class URLHandler extends IntentService implements URLHandlerListene
             url = intent.getStringExtra(EXTRA_URL);
             if (url != null) {
                 if (isURLValid(url)) {
-                    toastMessage("Downloading media...");
                     onHandleURL(url);
                 }
             }
@@ -124,9 +130,14 @@ public final class URLHandler extends IntentService implements URLHandlerListene
     @Override
     public File onHandleURL(String url) {
         File media = null;
-        String[] mediaURLs = module.findMediaURL(url);
+        String[] mediaURLs;
+
+        postStatusNotification("Fetching media urls...");
+        mediaURLs = module.use(this).getMediaURLs(url);
+        postStatusNotification(String.format("Total mediaURLs : %d", mediaURLs.length));
         if (mediaURLs != null && mediaURLs.length > 0) {
 //            Log.d("MEDIA_URL_SIZE", "size : " + mediaURLs.length);
+            postStatusNotification("Downloading media...");
             for (String mediaURL : mediaURLs) {
 //                Log.d("MEDIA_URL", mediaURL);
                 String type = determineType(mediaURL);
@@ -135,17 +146,48 @@ public final class URLHandler extends IntentService implements URLHandlerListene
                 endNotification(media, type);
             }
         }
+//        postStatusNotification(null);
+
         return media;
+    }
+
+    private void postStatusNotification(String text) {
+
+//        toastMessage(text);
+        if (statusNotificationId == -1) {
+            statusNotificationId = (int) System.currentTimeMillis();
+        }
+
+        if (text != null) {
+            NotificationHelper.notify(this,
+                    statusNotificationId,
+                    NotificationHelper.getBuilder(this, "SMS2 Status", text));
+        }
+        else {
+            NotificationHelper.cancel(this, statusNotificationId);
+            statusNotificationId = -1;
+        }
     }
 
     @Override
     public boolean isURLValid(String url) {
-        boolean isValid = ModulesCentral.with(this).check(url);
-        if (isValid)
-            this.module = ModulesCentral.with(this).get();
-        else
-            this.module = null;
-        return isValid;
+        postStatusNotification("Finding correct plugin...");
+        for (ModPlugin plugin : ModPluginEngine.getInstance(this).each()) {
+            if (plugin.isURLValid(url)) {
+                this.module = plugin;
+                postStatusNotification(String.format("Found plugin : %s", plugin.getName()));
+                return true;
+            }
+        }
+
+        this.module = null;
+        return false;
+//        boolean isValid = ModulesCentral.with(this).check(url);
+//        if (isValid)
+//            this.module = ModulesCentral.with(this).get();
+//        else
+//            this.module = null;
+//        return isValid;
     }
 
     private void cancelProgress() {
@@ -168,15 +210,51 @@ public final class URLHandler extends IntentService implements URLHandlerListene
     }
 
     private File downloadMedia(String url) {
-        return new Downloader(new OnDownloadListener() {
+        DownloadTask task = new DownloadTask.Builder(
+                url,
+                ModPluginEngine.getInstance(this).getPluginBaseDirPath(module),
+                null
+        ).setFilenameFromResponse(true)
+                .setMinIntervalMillisCallbackProcess(1000)
+                .build();
+
+        task.execute(new DownloadListener1() {
             @Override
-            public void onProgress(int progress) {
-                if ((System.currentTimeMillis() - currentTimeMillis) >= 1000L) {
-                    currentTimeMillis = System.currentTimeMillis();
-                    updateNotification(progress);
-                }
+            public void taskStart(@NonNull DownloadTask task, @NonNull Listener1Assist.Listener1Model model) {
+
             }
-        }).download(url, initializeBaseDir(module.getBaseDir()), null);
+
+            @Override
+            public void retry(@NonNull DownloadTask task, @NonNull ResumeFailedCause cause) {
+
+            }
+
+            @Override
+            public void connected(@NonNull DownloadTask task, int blockCount, long currentOffset, long totalLength) {
+                updateNotification((int) ((currentOffset * 100d) / totalLength));
+            }
+
+            @Override
+            public void progress(@NonNull DownloadTask task, long currentOffset, long totalLength) {
+                updateNotification((int) ((currentOffset * 100d) / totalLength));
+            }
+
+            @Override
+            public void taskEnd(@NonNull DownloadTask task, @NonNull EndCause cause, @Nullable Exception realCause, @NonNull Listener1Assist.Listener1Model model) {
+
+            }
+        });
+
+        return task.getFile();
+//        return new Downloader(new OnDownloadListener() {
+//            @Override
+//            public void onProgress(int progress) {
+//                if ((System.currentTimeMillis() - currentTimeMillis) >= 1000L) {
+//                    currentTimeMillis = System.currentTimeMillis();
+//                    updateNotification(progress);
+//                }
+//            }
+//        }).download(url, initializeBaseDir(module.getBaseDir()), null);
     }
 
     private String initializeBaseDir(String savePath) {

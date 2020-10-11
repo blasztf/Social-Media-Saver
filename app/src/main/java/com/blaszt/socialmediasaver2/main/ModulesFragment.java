@@ -15,12 +15,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.blaszt.socialmediasaver2.R;
-import com.blaszt.socialmediasaver2.module.Module;
-import com.blaszt.socialmediasaver2.module.ModulesCentral;
+import com.blaszt.socialmediasaver2.plugin.ModPlugin;
+import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +45,7 @@ public final class ModulesFragment extends BaseFragment {
         GridLayoutManager manager = new GridLayoutManager(getContext(), 2, GridLayoutManager.VERTICAL, false);
         content.setLayoutManager(manager);
 
-        ArrayList<Module> modules = getModules();
+        ArrayList<ModPlugin> modules = new ArrayList<>(ModPluginEngine.getInstance(getContext()).each());
 
         if (!modules.isEmpty()) {
             ModuleListAdapter adapter = new ModuleListAdapter(modules);
@@ -65,14 +64,10 @@ public final class ModulesFragment extends BaseFragment {
         }
     }
 
-    private ArrayList<Module> getModules() {
-        return new ArrayList<>(ModulesCentral.with(getContext()).getModules());
-    }
-
     private class ModuleListAdapter extends RecyclerView.Adapter<ModuleListAdapter.ViewHolder> {
-        private List<Module> modules;
+        private List<ModPlugin> modules;
 
-        ModuleListAdapter(List<Module> modules) {
+        ModuleListAdapter(List<ModPlugin> modules) {
             modules.add(0, null);
             this.modules = modules;
         }
@@ -85,7 +80,7 @@ public final class ModulesFragment extends BaseFragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
-            final Module module = modules.get(i);
+            final ModPlugin module = modules.get(i);
 
             if (module == null) {
                 RequestOptions options = new RequestOptions()
@@ -105,7 +100,7 @@ public final class ModulesFragment extends BaseFragment {
                 RequestOptions options = new RequestOptions()
                         .override(96);
 
-                byte[] logo = Base64.decode(module.getLogo(), Base64.DEFAULT);
+                byte[] logo = Base64.decode(module.getIcon(), Base64.DEFAULT);
 
                 Glide.with(getContext()).asBitmap().load(logo).apply(options).into(viewHolder.logo);
                 viewHolder.name.setText(module.getName());

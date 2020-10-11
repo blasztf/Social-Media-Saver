@@ -51,7 +51,7 @@ public class CrashCocoExceptionHandler implements Thread.UncaughtExceptionHandle
 
     private void writeLog(String msg) throws IOException {
         File reportFile = getFileLog();
-        FileWriter reportWriter = new FileWriter(reportFile);
+        FileWriter reportWriter = new FileWriter(reportFile, true);
         reportWriter.append(formatLog(msg));
         reportWriter.flush();
         reportWriter.close();

@@ -3,21 +3,25 @@ package com.blaszt.socialmediasaver2.helper.data;
 import android.content.Context;
 import android.support.annotation.Nullable;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.toolbox.HttpHeaderParser;
-import com.android.volley.toolbox.JsonRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.gson.JsonObject;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VolleyRequest {
     private RequestQueue mRequestQueue;
+    private CookieManager mCookieManager;
 
     private static VolleyRequest mInstance;
 
@@ -35,6 +39,8 @@ public class VolleyRequest {
 
     private VolleyRequest(Context context) {
         mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
+        mCookieManager = new CookieManager();
+        CookieHandler.setDefault(mCookieManager);
     }
 
     private RequestQueue getRequestQueue() {
@@ -56,7 +62,14 @@ public class VolleyRequest {
         }
     }
 
+    public CookieManager getCookieManager() {
+        return mCookieManager;
+    }
+
     public static class StringRequest extends com.android.volley.toolbox.StringRequest {
+        private HashMap<String, String> mRequestHeaders;
+        private Map<String, String> mResponseHeaders;
+        private Map<String, String> mPostParams;
 
         /**
          * Creates a new request with the given method.
@@ -81,8 +94,31 @@ public class VolleyRequest {
             super(url, listener, errorListener);
         }
 
+        public void setRequestHeaders(HashMap<String, String> headers) {
+            mRequestHeaders = headers;
+        }
+
+        public void setPostParams(Map<String, String> params) {
+            mPostParams = params;
+        }
+
+        public Map<String, String> getResponseHeaders() {
+            return mResponseHeaders;
+        }
+
+        @Override
+        protected Map<String, String> getParams() throws AuthFailureError {
+            return mPostParams != null ? mPostParams : super.getParams();
+        }
+
+        @Override
+        public Map<String, String> getHeaders() throws AuthFailureError {
+            return mRequestHeaders != null ? mRequestHeaders : super.getHeaders();
+        }
+
         @Override
         protected Response<String> parseNetworkResponse(NetworkResponse response) {
+            mResponseHeaders = response.headers;
             try {
                 return Response.success(new String(response.data, "UTF-8"), HttpHeaderParser.parseCacheHeaders(response));
             } catch (UnsupportedEncodingException e) {

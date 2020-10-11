@@ -73,7 +73,7 @@ public final class HomeFragment extends BaseFragment implements View.OnClickList
         if (text != null) {
             String url = text.toString();
             Intent intent = new Intent(getSupportActivity(), URLHandler.class);
-            intent.setAction(getSupportActivity().getPackageName() + ".intent.action.HANDLE_URL");
+            intent.setAction(URLHandler.ACTION_HANDLE_URL);
             intent.putExtra(URLHandler.EXTRA_URL, url);
             getSupportActivity().startService(intent);
         }
