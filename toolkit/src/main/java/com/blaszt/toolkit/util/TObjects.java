@@ -1,4 +1,4 @@
-package toolkit.util;
+package com.blaszt.toolkit.util;
 
 public final class TObjects {
     private TObjects() {}
@@ -29,11 +29,11 @@ public final class TObjects {
         else return obj.toString();
     }
 
-    public static <T extends Object> T requireNonNull(T obj) {
+    public static <T> T requireNonNull(T obj) {
         return requireNonNull(obj, null);
     }
 
-    public static <T extends Object> T requireNonNull(T obj, String msg) {
+    public static <T> T requireNonNull(T obj, String msg) {
         if (obj == null) throw new NullPointerException(msg);
         else return obj;
     }

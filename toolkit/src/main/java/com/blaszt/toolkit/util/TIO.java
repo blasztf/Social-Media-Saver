@@ -1,4 +1,4 @@
-package toolkit.util;
+package com.blaszt.toolkit.util;
 
 import java.io.Closeable;
 import java.io.IOException;

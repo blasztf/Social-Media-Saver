@@ -135,7 +135,7 @@ public abstract class PluginNet {
         public Config() {
             mStatusCode = -1;
             mMethod = NetMethod.GET;
-            mTimeout = 3000; // millis
+            mTimeout = 30000; // millis
             mRequestHeaders = null;
             mResponseHeaders = null;
             mCookies = null;

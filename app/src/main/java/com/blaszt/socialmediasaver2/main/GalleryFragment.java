@@ -51,8 +51,9 @@ import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-import toolkit.util.TStrings;
+import com.blaszt.toolkit.util.TStrings;
 
 public final class GalleryFragment extends BaseFragment {
 
@@ -179,7 +180,7 @@ public final class GalleryFragment extends BaseFragment {
 
                 private void startGifVideo(View itemView) {
                     GIFVideoView gifVideoView;
-                    if (itemView != null && itemView instanceof GIFVideoView) {
+                    if (itemView instanceof GIFVideoView) {
                         gifVideoView = (GIFVideoView) itemView;
                         if (!gifVideoView.isPlaying()) {
                             gifVideoView.start();
@@ -189,7 +190,7 @@ public final class GalleryFragment extends BaseFragment {
 
                 private void stopGifVideo(View itemView) {
                     GIFVideoView gifVideoView;
-                    if (itemView != null && itemView instanceof GIFVideoView) {
+                    if (itemView instanceof GIFVideoView) {
                         gifVideoView = (GIFVideoView) itemView;
                         if (gifVideoView.isPlaying()) {
                             gifVideoView.stopPlayback();
@@ -199,7 +200,7 @@ public final class GalleryFragment extends BaseFragment {
 
                 private void resetZoomTouchImage(View itemView) {
                     TouchImageView touchImageView;
-                    if (itemView != null && itemView instanceof TouchImageView) {
+                    if (itemView instanceof TouchImageView) {
                         touchImageView = (TouchImageView) itemView;
                         if (touchImageView.isZoomed()) {
                             touchImageView.resetZoom();
@@ -279,52 +280,55 @@ public final class GalleryFragment extends BaseFragment {
                 }
 
                 private void askOpenDir(final MediaData media, final int position) {
-                    new AlertDialog.Builder(getContext())
-                            .setMessage("Open this " + media.toTypeString() + " in file manager?")
-                            .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    dialogInterface.dismiss();
-                                    askDelete(media, position);
-                                }
-                            })
-                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                                    Uri uriPath = Uri.parse(new File(media.getPath()).getParent());
-                                    intent.setDataAndType(uriPath, "resource/folder");
-                                    startActivity(intent);
-                                }
-                            })
-                            .show();
+                    if (getContext() != null) {
+                        new AlertDialog.Builder(getContext())
+                                .setMessage("Open this " + media.toTypeString() + " in file manager?")
+                                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        dialogInterface.dismiss();
+                                        askDelete(media, position);
+                                    }
+                                })
+                                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                                        Uri uriPath = Uri.parse(new File(media.getPath()).getParent());
+                                        intent.setDataAndType(uriPath, "resource/folder");
+                                        startActivity(intent);
+                                    }
+                                })
+                                .show();
+                    }
                 }
 
                 private void askDelete(final MediaData media, final int position) {
-                    new AlertDialog.Builder(getContext())
-                    .setMessage("Delete this " + media.toTypeString() + "?")
-                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    })
-                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            String msg;
-                            File file = new File(media.getPath());
-                            if (file.delete()) {
-                                adapter.removeItem(position);
-                                msg = TStrings.capitalize(media.toTypeString()) + " has been deleted";
-                            }
-                            else {
-                                msg = "Failed to delete file!";
-                            }
-                            Snackbar.make(getView().getRootView(), msg, Snackbar.LENGTH_LONG).show();
-                        }
-                    })
-                    .show();
+                    if (getContext() != null) {
+                        new AlertDialog.Builder(getContext())
+                                .setMessage("Delete this " + media.toTypeString() + "?")
+                                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                })
+                                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        String msg;
+                                        File file = new File(media.getPath());
+                                        if (file.delete()) {
+                                            adapter.removeItem(position);
+                                            msg = TStrings.capitalize(media.toTypeString()) + " has been deleted";
+                                        } else {
+                                            msg = "Failed to delete file!";
+                                        }
+                                        Snackbar.make(Objects.requireNonNull(getView()).getRootView(), msg, Snackbar.LENGTH_LONG).show();
+                                    }
+                                })
+                                .show();
+                    }
                 }
 
                 private void lazyLoadAdapter() {
@@ -360,8 +364,7 @@ public final class GalleryFragment extends BaseFragment {
     }
 
     private void showImages(String path, int sortFlags, boolean recursive) {
-        String mediaDirectory = path;
-        List<MediaData> mediaFiles = getMediaFiles(mediaDirectory, sortFlags, recursive);
+        List<MediaData> mediaFiles = getMediaFiles(path, sortFlags, recursive);
 
         if (!mediaFiles.isEmpty()) {
             GalleryAdapter galleryAdapter = RecyclerViewUtils.getAdapter(gallery);

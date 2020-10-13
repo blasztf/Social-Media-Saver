@@ -1,5 +1,4 @@
-include ':plugin-test'
 include ':plugin-twitter'
 include ':plugin-instagram'
 include ':plugin'
-include ':app', ':modulelinker', ':instagram', ':twitter', ':toolkit', ':module-instagram', ':module-base'
+include ':app', ':toolkit'

@@ -22,8 +22,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.blaszt.socialmediasaver2.R;
 import com.blaszt.socialmediasaver2.helper.data.VolleyRequest;
-import com.blaszt.socialmediasaver2.module.Module;
-import com.blaszt.socialmediasaver2.module.ModulesCentral;
+
 import com.bumptech.glide.Glide;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -33,12 +32,11 @@ import com.google.gson.JsonParser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ModulesCentralActivity extends AppCompatActivity {
     private RecyclerView content;
@@ -49,10 +47,10 @@ public class ModulesCentralActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_modules_central);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -60,7 +58,7 @@ public class ModulesCentralActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
 
         setupView();
         loadModulesFromCentral();
@@ -128,7 +126,7 @@ public class ModulesCentralActivity extends AppCompatActivity {
 
             List<ModuleItem> modules = new ArrayList<>();
 
-            JsonObject json = new JsonParser().parse(jsonResponse).getAsJsonObject();
+            JsonObject json = JsonParser.parseString(jsonResponse).getAsJsonObject();
             statusCode = json.get("statusCode").getAsInt();
             if (statusCode == 0) {
                 jsonModules = json.get("response").getAsJsonObject().getAsJsonArray("modules");
@@ -270,7 +268,8 @@ public class ModulesCentralActivity extends AppCompatActivity {
         }
 
         private boolean installModule() {
-            return ModulesCentral.with(mContext.get()).install(mModule.source);
+            return true;
+//            return ModulesCentral.with(mContext.get()).install(mModule.source);
         }
 
         private void makeData(File moduleFile) {

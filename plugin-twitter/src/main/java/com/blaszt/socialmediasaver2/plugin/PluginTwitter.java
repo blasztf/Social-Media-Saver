@@ -3,7 +3,6 @@ package com.blaszt.socialmediasaver2.plugin;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
@@ -15,22 +14,8 @@ public class PluginTwitter extends Plugin {
     private static final String HEADER_CONNECTION = "keep-alive";
     private static final String HEADER_HOST = "twitter.com", HEADER_ORIGIN = String.format("https://%s", HEADER_HOST);
     private static final String HEADER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20101101 Firefox/81.0";
-//    private static final String HEADER_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.133 Safari/537.36";
-//    private static final String HEADER_TE = "Trailers";
-//    private static final String HEADER_HOST_ = "twitter.com";
-//    private static final String HEADER_UPGRADE_INSECURE_REQUESTS = "1";
-//    private static final String HEADER_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-//    private static final String HEADER_ACCEPT_ENCODING = "gzip, deflate, br";
-//    private static final String HEADER_ACCEPT_LANGUAGE = "id,en-US;q=0.7,en;q=0.3";
-
-    private String csrfToken = null;
-    private String guestToken = null;
 
     private LimitedData mLimitedData;
-
-    private int ratelimitLimit = 0;
-    private int ratelimitRemaining = 0;
-    private long ratelimitReset = 0;
 
     protected PluginTwitter(PluginNet pluginNet) {
         super(pluginNet);
@@ -57,7 +42,7 @@ public class PluginTwitter extends Plugin {
         }
 
         private boolean timeout() {
-            return isNotAllInitialized() || ((System.currentTimeMillis() - mTimeMillis) > (1 * 60 * 60 * 1000)); // One hour
+            return isNotAllInitialized() || ((System.currentTimeMillis() - mTimeMillis) > (60 * 60 * 1000)); // One hour
         }
     }
 
@@ -89,8 +74,7 @@ public class PluginTwitter extends Plugin {
             getLimitedData().authorization = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
 
             config = new PluginNet.Config();
-            config.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20101101 Firefox/81.0")
-                    .addHeader("authorization", getLimitedData().authorization);
+            config.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:80.0) Gecko/20101101 Firefox/81.0");
             response = getPluginNet().getResponse(url, config);
 
             if (config.getCookies().contains("ct0")) {
@@ -104,8 +88,11 @@ public class PluginTwitter extends Plugin {
                     .addHeader("x-csrf-token", getLimitedData().csrfToken);
             response = getPluginNet().getResponse("https://api.twitter.com/1.1/guest/activate.json", config);
 
-            getLimitedData().guestToken = JsonParser.parseString(response).getAsJsonObject().get("guest_token").getAsString();
-
+            try {
+                getLimitedData().guestToken = JsonParser.parseString(response).getAsJsonObject().get("guest_token").getAsString();
+            } catch (Exception e) {
+                throw new RuntimeException("Response : \n" + response + "\n" + e);
+            }
             getLimitedData().clockUp();
         }
 
@@ -132,21 +119,23 @@ public class PluginTwitter extends Plugin {
             // Media contain video
             if (mediaList.get(0).getAsJsonObject().has("video_info")) {
                 int bitrate = 0;
-                int tempBitrate = 0;
-                int index = 0;
+                int bestIndex = 0;
+                int tempBitrate;
                 mediaList = mediaList.get(0)
                         .getAsJsonObject().get("video_info")
                         .getAsJsonObject().get("variants")
                         .getAsJsonArray();
-                for (JsonElement e : mediaList) {
-                    if (e.getAsJsonObject().has("bitrate")) {
-                        tempBitrate = e.getAsJsonObject().get("bitrate").getAsInt();
+                for (int index = 0, len = mediaList.size(); index < len; index++) {
+                    if (mediaList.get(index).getAsJsonObject().has("bitrate")) {
+                        tempBitrate = mediaList.get(index).getAsJsonObject().get("bitrate").getAsInt();
                         bitrate = Math.max(tempBitrate, bitrate);
+                        if (bitrate == tempBitrate) {
+                            bestIndex = index;
+                        }
                     }
-                    index++;
                 }
                 mediaCollections = new String[] {
-                        mediaList.get(index).getAsJsonObject().get("url").getAsString()
+                        mediaList.get(bestIndex).getAsJsonObject().get("url").getAsString()
                 };
             }
             else {
@@ -159,7 +148,7 @@ public class PluginTwitter extends Plugin {
             }
         }
         else {
-            // The is no media
+            // There is no media
             mediaCollections = new String[0];
         }
 
@@ -173,24 +162,6 @@ public class PluginTwitter extends Plugin {
 
     private LimitedData getLimitedData() {
         return mLimitedData;
-    }
-
-    private boolean isTweetContainVideo(String response) {
-        return response != null && response.contains("class=\"PlayableMedia");
-    }
-
-    private boolean isTweetContainPhoto(String response) {
-        return response != null && (response.contains("class=\"AdaptiveMedia-photoContainer") || response.contains("class=\"card-photo"));
-    }
-
-    private boolean isGuestTokenStillValid() {
-        boolean valid = false;
-
-        if (ratelimitRemaining == -1 || ratelimitRemaining > 0 || (System.currentTimeMillis() / 1000L) < ratelimitReset) {
-            valid = true;
-        }
-
-        return valid;
     }
 
     /**
@@ -215,169 +186,5 @@ public class PluginTwitter extends Plugin {
 
     private String getTweetId(String url) {
         return getIds(url)[1];
-    }
-
-    private String findGuestToken(String response) {
-        if (response == null) return null;
-        JsonObject root = JsonParser.parseString(response).getAsJsonObject();
-        if (root.has("guest_token")) {
-            return root.get("guest_token").getAsString();
-        } else {
-            return null;
-        }
-    }
-
-    private void setCSRFToken(PluginNet.NetCookie cookies) {
-        String unauthToken = findCSRFToken(cookies);
-
-        if (unauthToken != null) {
-            csrfToken = unauthToken;
-        }
-    }
-
-    private String findCSRFToken(PluginNet.NetCookie cookies) {
-        if (cookies == null) return null;
-        if (cookies.contains("ct0")) return cookies.get("ct0").getValue();
-        return null;
-    }
-
-    private String findPlaybackUrl(String response, PluginNet.Config config) {
-        if (response != null) {
-            ratelimitLimit = Integer.parseInt(config.getResponseHeader("x-rate-limit-limit"));
-            ratelimitRemaining = Integer.parseInt(config.getResponseHeader("x-rate-limit-remaining"));
-            ratelimitReset = Long.parseLong(config.getResponseHeader("x-rate-limit-reset"));
-
-            JsonObject dataConfig, track;
-            String playbackUrl = null;
-
-            try {
-                dataConfig = JsonParser.parseString(response).getAsJsonObject();
-            } catch (JsonParseException e) {
-                dataConfig = null;
-            }
-
-            if (dataConfig != null) {
-                track = dataConfig.getAsJsonObject("track");
-                if (track != null) {
-                    playbackUrl = track.get("playbackUrl").getAsString();
-                }
-            }
-
-            return playbackUrl;
-        }
-        else {
-            return null;
-        }
-    }
-
-    private String[] getPhotoUrls(String response) {
-        ArrayList<String> list = new ArrayList<>();
-        int i = 0;
-
-        while ((i = response.indexOf("AdaptiveMedia-photoContainer", i)) != -1) {
-            i = response.indexOf("data-image-url=\"", i) + 16;
-            list.add(response.substring(i, response.indexOf('"', i)));
-        }
-        return list.toArray(new String[list.size()]);
-    }
-
-    private String requestTweet(String url, PluginNet.Config config) {
-//        HashMap<String, String> headers = new HashMap<>();
-//        headers.put("Connection", HEADER_CONNECTION);
-//        headers.put("User-Agent", "");
-//        headers.put("TE", HEADER_TE);
-//        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
-//        headers.put("Host", HEADER_HOST_);
-//        headers.put("Origin", "https://twitter.com");
-//        headers.put("Accept", HEADER_ACCEPT);
-//        headers.put("Accept-Encoding", HEADER_ACCEPT_ENCODING);
-//        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
-//        headers.put("Referer", "https://www.google.com/");
-
-        config.addHeader("Host", HEADER_HOST);
-        config.addHeader("Origin", HEADER_ORIGIN);
-        config.addHeader("User-Agent", HEADER_USER_AGENT);
-
-        return getPluginNet().getResponse(url, config);
-    }
-
-//    private String requestTweetConfig(String url, Responder.Options options) {
-//        HashMap<String, String> headers = new HashMap<>();
-//        headers.put("Connection", HEADER_CONNECTION);
-//        headers.put("User-Agent", HEADER_USER_AGENT);
-//        headers.put("TE", HEADER_TE);
-//        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
-//        headers.put("Host", HEADER_HOST_);
-//        headers.put("Origin", "https://twitter.com");
-//        headers.put("Accept", HEADER_ACCEPT);
-//        headers.put("Accept-Encoding", HEADER_ACCEPT_ENCODING);
-//        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
-//        headers.put("Referer", url);
-//
-//        options.reset()
-//                .requestResponseCookies(true)
-//                .setRequestHeaders(headers);
-//        new HttpLogger("tw.resp").writeLog("Collecting cookie...");
-//        String response = Responder.with(null).apply(options).getResponse(url);
-//        new HttpLogger("tw.resp").writeLog(response);
-//        String config = String.format("https://api.twitter.com/2/timeline/conversation/%s.json", url.substring(url.lastIndexOf("/") + 1, url.lastIndexOf("?")));
-//        new HttpLogger("tw.resp").writeLog("Config : " + config);
-//        return Responder.with(null).apply(options).getResponse(config);
-//    }
-
-//    private String requestTweetFallback(String url, PluginNet.Config config) {
-//        HashMap<String, String> headers = new HashMap<>();
-//        headers.put("Connection", HEADER_CONNECTION);
-//        headers.put("User-Agent", HEADER_USER_AGENT);
-//        headers.put("TE", HEADER_TE);
-//        headers.put("Upgrade-Insecure-Requests", HEADER_UPGRADE_INSECURE_REQUESTS);
-//        headers.put("Host", HEADER_HOST_);
-//        headers.put("Accept", HEADER_ACCEPT);
-//        headers.put("Accept-Encoding", HEADER_ACCEPT_ENCODING);
-//        headers.put("Accept-Language", HEADER_ACCEPT_LANGUAGE);
-//        headers.put("Referer", "https://www.google.com/");
-//
-//        options
-//                .requestResponseCookies(true);
-//
-//        return Responder.with(null).apply(options).getResponse(url);
-//    }
-
-    private String requestDataConfig(String response, String url, PluginNet.Config config) {
-        final String tweetId = getIds(url)[1];
-
-        if (response != null) {
-            guestToken = findGuestToken(response);
-        }
-
-        if (guestToken != null) {
-            config.addHeader("authorization", HEADER_AUTHORIZATION)
-                    .addHeader("Connection", HEADER_CONNECTION)
-                    .addHeader("Host", HEADER_HOST)
-                    .addHeader("User-Agent", HEADER_USER_AGENT)
-                    .addHeader("Referer", url)
-                    .addHeader("x-csrf-token", csrfToken)
-                    .addHeader("x-guest-token", guestToken);
-
-            return getPluginNet().getResponse(String.format("https://api.twitter.com/1.1/videos/tweet/config/%s.json", tweetId), config);
-        } else {
-            return null;
-        }
-    }
-
-    private String requestGuestToken(PluginNet.Config config, PluginNet.NetCookie cookies) {
-        setCSRFToken(cookies);
-        if (csrfToken != null) {
-            config.setMethod(PluginNet.NetMethod.POST)
-                    .addHeader("authorization", HEADER_AUTHORIZATION)
-                    .addHeader("Connection", HEADER_CONNECTION)
-                    .addHeader("Host", HEADER_HOST)
-                    .addHeader("User-Agent", HEADER_USER_AGENT)
-                    .addHeader("x-csrf-token", csrfToken);
-
-            return getPluginNet().getResponse("https://api.twitter.com/1.1/guest/activate.json", config);
-        } else {
-            return null;
-        }
     }
 }

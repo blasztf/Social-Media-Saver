@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.CookieHandler;
 import java.net.CookieManager;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public class VolleyRequest {
     }
 
     public static class StringRequest extends com.android.volley.toolbox.StringRequest {
-        private HashMap<String, String> mRequestHeaders;
+        private Map<String, String> mRequestHeaders;
         private Map<String, String> mResponseHeaders;
         private Map<String, String> mPostParams;
 
@@ -94,7 +95,7 @@ public class VolleyRequest {
             super(url, listener, errorListener);
         }
 
-        public void setRequestHeaders(HashMap<String, String> headers) {
+        public void setRequestHeaders(Map<String, String> headers) {
             mRequestHeaders = headers;
         }
 
@@ -119,11 +120,7 @@ public class VolleyRequest {
         @Override
         protected Response<String> parseNetworkResponse(NetworkResponse response) {
             mResponseHeaders = response.headers;
-            try {
-                return Response.success(new String(response.data, "UTF-8"), HttpHeaderParser.parseCacheHeaders(response));
-            } catch (UnsupportedEncodingException e) {
-                return Response.error(new ParseError(e));
-            }
+            return Response.success(new String(response.data, StandardCharsets.UTF_8), HttpHeaderParser.parseCacheHeaders(response));
         }
     }
 

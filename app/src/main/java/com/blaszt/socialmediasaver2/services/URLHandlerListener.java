@@ -1,9 +1,6 @@
 package com.blaszt.socialmediasaver2.services;
 
-import com.blaszt.socialmediasaver2.module.Module;
-
 import java.io.File;
-import java.util.ArrayList;
 
 interface URLHandlerListener {
     void startNotification(String type);

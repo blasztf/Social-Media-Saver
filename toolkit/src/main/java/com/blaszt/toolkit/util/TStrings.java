@@ -1,4 +1,4 @@
-package toolkit.util;
+package com.blaszt.toolkit.util;
 
 public final class TStrings {
 

@@ -37,26 +37,28 @@ public class ModPluginNet extends PluginNet {
             request.setPostParams(config.getAllData().getMap());
         }
 
+        if (config.getHeaders() != null) {
+            request.setRequestHeaders(config.getHeaders().getMap());
+        }
+
         VolleyRequest.with(context).addToQueue(request);
 
         try {
             response = future.get(config.getTimeout(), TimeUnit.MILLISECONDS);
             setResponseHeaders(new NetHeader(request.getResponseHeaders()), config);
+            config.setCookies(new NetCookie(VolleyRequest.with(context).getCookieManager().getCookieStore().getCookies()));
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            e.printStackTrace();
-            response = null;
+            throw new RuntimeException(e);
         }
 
         return response;
     }
 
     private int transformNetMethod(NetMethod method) {
-        switch (method) {
-            case POST:
-                return Request.Method.POST;
-            default:
-                return Request.Method.GET;
+        if (method == NetMethod.POST) {
+            return Request.Method.POST;
         }
+        return Request.Method.GET;
     }
 
     void injectContext(ModPlugin.ContextInjector context) {

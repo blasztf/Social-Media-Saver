@@ -2,8 +2,6 @@ package com.blaszt.socialmediasaver2.logger;
 
 import android.os.Environment;
 
-import com.blaszt.modulelinker.helper.IOUtils;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,7 +12,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import toolkit.util.TStrings;
+import com.blaszt.toolkit.util.TIO;
+import com.blaszt.toolkit.util.TStrings;
 
 public class CrashCocoExceptionHandler implements Thread.UncaughtExceptionHandler {
     private static final String ENV = File.separator + "CrashCoco_Reports" + File.separator;
@@ -45,7 +44,7 @@ public class CrashCocoExceptionHandler implements Thread.UncaughtExceptionHandle
         e.printStackTrace(printWriter);
         message = writer.toString();
         printWriter.close();
-        IOUtils.closeQuietly(writer);
+        TIO.closeQuietly(writer);
         return message;
     }
 

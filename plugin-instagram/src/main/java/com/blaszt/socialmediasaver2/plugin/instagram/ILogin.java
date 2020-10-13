@@ -31,8 +31,7 @@ public class ILogin {
 
         LoginPayload loginPayload = new LoginPayload(username, passwordOrCookie, uuid, csrfToken);
 
-        PluginNet.Config config = new PluginNet.Config()
-                .setTimeout(30 * 1000);
+        PluginNet.Config config = new PluginNet.Config();
         INet.asPost(config, loginPayload.build());
 
         url = IConstant.API_URL + IConstant.API_LOGIN;
