@@ -32,10 +32,10 @@ public class ILogin {
         LoginPayload loginPayload = new LoginPayload(username, passwordOrCookie, uuid, csrfToken);
 
         PluginNet.Config config = new PluginNet.Config();
-        INet.asPost(config, loginPayload.build());
+        INet.asPost(config, loginPayload);
 
         url = IConstant.API_URL + IConstant.API_LOGIN;
-        response = mPluginNet.getResponse(url);
+        response = mPluginNet.getResponse(url, config);
 
         status = IDataUtil.getStatus(response);
 
@@ -48,7 +48,7 @@ public class ILogin {
 
         SyncFeaturesPayload syncFeaturesPayload = new SyncFeaturesPayload(uuid, usernamePk, csrfToken);
 
-        INet.asPost(config, syncFeaturesPayload.build());
+        INet.asPost(config, syncFeaturesPayload);
         url = IConstant.API_URL + IConstant.API_SYNC_FEATURES;
         response = mPluginNet.getResponse(url, config);
 

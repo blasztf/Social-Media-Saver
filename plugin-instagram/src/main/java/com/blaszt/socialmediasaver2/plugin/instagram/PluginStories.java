@@ -43,6 +43,11 @@ public class PluginStories extends Plugin {
         return url.matches(URL_VALIDATOR);
     }
 
+    @Override
+    protected PluginNet getPluginNet() {
+        return super.getPluginNet();
+    }
+
     public String[] getStoriesCollections(String url) {
         String[] collections = new String[0];
         List<String> stories;
