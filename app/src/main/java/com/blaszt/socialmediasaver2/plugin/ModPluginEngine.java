@@ -5,6 +5,7 @@ import android.os.Build;
 
 import com.blaszt.socialmediasaver2.AppSettings;
 import com.blaszt.socialmediasaver2.helper.data.StorageUtils;
+import com.blaszt.socialmediasaver2.plugin.helper.storage.StorageCache;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,6 +85,7 @@ public class ModPluginEngine {
             for (File pluginFile : pluginFiles) {
                 dexClassLoader = new DexClassLoader(pluginFile.getAbsolutePath(), getOptimizedDirectory().getAbsolutePath(), null, getClass().getClassLoader());
                 plugin = new ModPlugin(dexClassLoader, getPluginClassName(pluginFile), mPluginNet);
+                plugin.setHelper(StorageCache.class, new ModPluginStorage(getContext(), plugin));
                 engine.add(plugin);
             }
         }

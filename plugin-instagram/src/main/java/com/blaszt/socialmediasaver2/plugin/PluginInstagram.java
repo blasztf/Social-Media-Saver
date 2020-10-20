@@ -1,5 +1,7 @@
 package com.blaszt.socialmediasaver2.plugin;
 
+import com.blaszt.socialmediasaver2.plugin.helper.Helper;
+import com.blaszt.socialmediasaver2.plugin.helper.storage.StorageCache;
 import com.blaszt.socialmediasaver2.plugin.instagram.PluginStories;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -10,12 +12,17 @@ public class PluginInstagram extends Plugin {
 
     protected PluginInstagram(PluginNet pluginNet) {
         super(pluginNet);
-        mPluginStories = new PluginStories(pluginNet);
+        mPluginStories = new PluginStories(this);
     }
 
     @Override
     protected PluginNet getPluginNet() {
         return super.getPluginNet();
+    }
+
+    @Override
+    protected void setHelper(String clazz, Helper obj) {
+        super.setHelper(clazz, obj);
     }
 
     @Override
@@ -36,7 +43,7 @@ public class PluginInstagram extends Plugin {
 //            log.writeLog("Module :: It is stories!");
 //            moduleInstaStory.setup();
 //            moduleInstaStory.setUsername(url);
-            mediaCollections = mPluginStories.getStoriesCollections(url);
+            mediaCollections = mPluginStories.getMediaURLs(url);
         }
         else {
 //            log.writeLog("Module :: It is not stories!");

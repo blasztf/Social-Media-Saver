@@ -1,8 +1,13 @@
 package com.blaszt.socialmediasaver2.plugin;
 
+import com.blaszt.socialmediasaver2.plugin.helper.Helper;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class Plugin {
     private PluginNet mPluginNet;
-    private Helper mHelper;
+    private Map<String, Helper> mListHelper;
 
     public abstract String getName();
     public abstract String getIcon(); // Base 64 Format
@@ -11,18 +16,23 @@ public abstract class Plugin {
 
     protected Plugin(PluginNet pluginNet) {
         mPluginNet = pluginNet;
-        mHelper = new Helper();
+        mListHelper = new HashMap<>();
+    }
+
+    protected Plugin(Plugin extendFrom) {
+        mPluginNet = extendFrom.mPluginNet;
+        mListHelper = extendFrom.mListHelper;
     }
 
     protected PluginNet getPluginNet() {
         return mPluginNet;
     }
 
-    public Helper getHelper() {
-        return mHelper;
+    protected void setHelper(String clazz, Helper obj) {
+        mListHelper.put(clazz, obj);
     }
 
-    private static class Helper {
-
+    public <T extends Helper> T getHelper(Class<T> clazz) {
+        return (T) mListHelper.get(clazz.getName());
     }
 }

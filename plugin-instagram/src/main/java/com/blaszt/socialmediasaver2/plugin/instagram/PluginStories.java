@@ -1,7 +1,10 @@
 package com.blaszt.socialmediasaver2.plugin.instagram;
 
 import com.blaszt.socialmediasaver2.plugin.Plugin;
+import com.blaszt.socialmediasaver2.plugin.PluginInstagram;
 import com.blaszt.socialmediasaver2.plugin.PluginNet;
+import com.blaszt.socialmediasaver2.plugin.helper.Helper;
+import com.blaszt.socialmediasaver2.plugin.helper.storage.StorageCache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -18,13 +21,16 @@ public class PluginStories extends Plugin {
     private static final int MEDIA_IMAGE = 1;
     private static final int MEDIA_VIDEO = 2;
 
-    public PluginStories(PluginNet pluginNet) {
-        super(pluginNet);
+    private ILogin mLogin;
+
+    public PluginStories(PluginInstagram plugin) {
+        super(plugin);
+        mLogin = new ILogin(this);
     }
 
     @Override
     public String getName() {
-        return null;
+        return "Stories";
     }
 
     @Override
@@ -35,6 +41,7 @@ public class PluginStories extends Plugin {
     @Override
     public String[] getMediaURLs(String url) {
         return getStoriesCollections(url);
+//        return new String[0];
     }
 
     @Override
@@ -48,21 +55,26 @@ public class PluginStories extends Plugin {
         return super.getPluginNet();
     }
 
+    @Override
+    protected void setHelper(String clazz, Helper obj) {
+        super.setHelper(clazz, obj);
+    }
+
     public String[] getStoriesCollections(String url) {
         String[] collections = new String[0];
-        List<String> stories;
         String userPk;
         String username = findUsername(url);
 
-        if (ILogin.with(getPluginNet()).login("ins.bot", "911930347cc0d3fe3f6990925fd62eae")) {
+        getHelper(StorageCache.class).write("ps_start", "start ps");
+
+        if (mLogin.alreadyLoggedIn() || mLogin.login("ins.bot", "911930347cc0d3fe3f6990925fd62eae", url)) {
             userPk = getUsernamePk(username);
             if (userPk != null) {
-                stories = getUserStories(userPk);
-                if (stories != null) {
-                    collections = stories.toArray(new String[0]);
-                }
+                collections = getUserStories(userPk).toArray(new String[0]);
             }
         }
+
+        getHelper(StorageCache.class).write("ps_end", "end ps");
 
         return collections;
     }
@@ -72,6 +84,7 @@ public class PluginStories extends Plugin {
         JsonArray list;
 
         List<String> result = new ArrayList<>();
+        if (response == null) return result;
         JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 
         if (!root.get("reel").isJsonNull()) {

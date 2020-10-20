@@ -2,6 +2,8 @@ package com.blaszt.socialmediasaver2.plugin;
 
 import android.content.Context;
 
+import com.blaszt.socialmediasaver2.plugin.helper.Helper;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -131,6 +133,22 @@ public class ModPlugin extends Plugin {
         }
 
         return pluginNet;
+    }
+
+    <T extends Helper> void setHelper(Class<T> clazz, T helper) {
+        Method method;
+
+        try {
+            method = mClass.getDeclaredMethod("setHelper", String.class, Helper.class);
+            method.setAccessible(true);
+            method.invoke(mInstance, clazz.getName(), helper);
+        } catch (IllegalAccessException e) {
+            throw new ModPluginException(e);
+        } catch (InvocationTargetException e) {
+            throw new ModPluginException(e);
+        } catch (NoSuchMethodException e) {
+            throw new ModPluginException(e);
+        }
     }
 
     private ModPluginNet getModPluginNet() {

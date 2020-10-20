@@ -1,5 +1,7 @@
 package com.blaszt.socialmediasaver2.plugin;
 
+import com.blaszt.socialmediasaver2.plugin.helper.Helper;
+import com.blaszt.socialmediasaver2.plugin.helper.storage.StorageCache;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -47,6 +49,11 @@ public class PluginTwitter extends Plugin {
     }
 
     @Override
+    protected void setHelper(String clazz, Helper obj) {
+        super.setHelper(clazz, obj);
+    }
+
+    @Override
     protected PluginNet getPluginNet() {
         return super.getPluginNet();
     }
@@ -70,6 +77,7 @@ public class PluginTwitter extends Plugin {
         JsonArray mediaList;
         PluginNet.Config config;
 
+        loadLimitedData();
         if (getLimitedData().timeout()) {
             getLimitedData().authorization = "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
 
@@ -94,6 +102,7 @@ public class PluginTwitter extends Plugin {
                 throw new RuntimeException("Response : \n" + response + "\n" + e);
             }
             getLimitedData().clockUp();
+            saveLimitedData();
         }
 
         tweetId = getTweetId(url);
@@ -162,6 +171,25 @@ public class PluginTwitter extends Plugin {
 
     private LimitedData getLimitedData() {
         return mLimitedData;
+    }
+
+    private void loadLimitedData() {
+        String timeMillis;
+
+        StorageCache storageCache = getHelper(StorageCache.class);
+        getLimitedData().authorization = storageCache.read("ld_auth");
+        getLimitedData().csrfToken = storageCache.read("ld_csrf");
+        getLimitedData().guestToken = storageCache.read("ld_gest");
+
+        getLimitedData().mTimeMillis = (timeMillis = storageCache.read("ld_time")) != null ? Long.parseLong(timeMillis) : 0;
+    }
+
+    private void saveLimitedData() {
+        StorageCache storageCache = getHelper(StorageCache.class);
+        storageCache.write("ld_auth", getLimitedData().authorization);
+        if (getLimitedData().csrfToken != null) storageCache.write("ld_csrf", getLimitedData().csrfToken);
+        storageCache.write("ld_gest", getLimitedData().guestToken);
+        storageCache.write("ld_time", String.valueOf(getLimitedData().mTimeMillis));
     }
 
     /**

@@ -3,25 +3,29 @@ package com.blaszt.socialmediasaver2.plugin;
 import android.content.Context;
 import android.widget.Toast;
 
+import com.android.volley.ClientError;
 import com.android.volley.Request;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.RequestFuture;
 import com.blaszt.socialmediasaver2.helper.data.GetParamsBuilder;
 import com.blaszt.socialmediasaver2.helper.data.VolleyRequest;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class ModPluginNet extends PluginNet {
+class ModPluginNet extends PluginNet {
     private ModPlugin.ContextInjector mContext;
 
-    public ModPluginNet() {
+    ModPluginNet() {
 
     }
 
     @Override
     public String getResponse(String url, PluginNet.Config config) {
+        VolleyError errorRequest;
         RequestFuture<String> future;
         VolleyRequest.StringRequest request;
         String response;
@@ -48,10 +52,37 @@ public class ModPluginNet extends PluginNet {
             setResponseHeaders(new NetHeader(request.getResponseHeaders()), config);
             config.setCookies(new NetCookie(VolleyRequest.with(context).getCookieManager().getCookieStore().getCookies()));
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new RuntimeException(e);
+            if (e.getCause() instanceof VolleyError) {
+                errorRequest = (VolleyError) e.getCause();
+                throw new RuntimeException(String.format(
+                        "Volley Error:\n" +
+                        " Status: %d\n" +
+                        " Response: %s\n" +
+                        " Headers: %s\n",
+                        errorRequest.networkResponse.statusCode,
+                        new String(errorRequest.networkResponse.data, StandardCharsets.UTF_8),
+                        headersToString(errorRequest.networkResponse.headers)));
+            }
+            else {
+                throw new RuntimeException(e);
+            }
         }
 
         return response;
+    }
+
+    private String headersToString(Map<String, String> headers) {
+        StringBuilder builder = new StringBuilder("\n");
+
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.append(" ")
+                    .append(entry.getKey())
+                    .append(" => ")
+                    .append(entry.getValue())
+                    .append("\n");
+        }
+
+        return builder.toString();
     }
 
     private int transformNetMethod(NetMethod method) {

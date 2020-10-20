@@ -1,77 +1,118 @@
 package com.blaszt.socialmediasaver2.plugin.instagram;
 
 import com.blaszt.socialmediasaver2.plugin.PluginNet;
+import com.blaszt.socialmediasaver2.plugin.helper.storage.StorageCache;
 
 import java.lang.reflect.Field;
 import java.net.HttpCookie;
 import java.util.Map;
 
 public class ILogin {
+    private PluginStories mPlugin;
+    private LimitedData mLimitedData;
+    private boolean mIsLoggedIn;
 
-    private PluginNet mPluginNet;
+    private class LimitedData {
+        private String uuid;
+        private String csrfToken;
+        private String usernamePk;
+        private long mTimeMillis;
 
-    public static synchronized ILogin with(PluginNet pluginNet) {
-        return new ILogin(pluginNet);
+        private LimitedData() {
+
+        }
+
+        private boolean isNotAllInitialized() {
+            return uuid == null || csrfToken == null || usernamePk == null;
+        }
+
+        private boolean timeout() {
+            return isNotAllInitialized() || (System.currentTimeMillis() - mTimeMillis) > (60 * 60 * 1000);
+        }
+
+        private void clockUp() {
+            mTimeMillis = System.currentTimeMillis();
+        }
     }
 
-    private ILogin(PluginNet pluginNet) {
-        mPluginNet = pluginNet;
+    ILogin(PluginStories plugin) {
+        mPlugin = plugin;
+        mLimitedData = new LimitedData();
     }
 
-    public boolean login(String username, String passwordOrCookie) {
-        String uuid = IUtil.getGeneric().generateUuid(true);
-        String csrfToken = getCsrfToken();
-
+    boolean login(String username, String password, String referenceUrl) {
         String url;
         String response;
-        String usernamePk;
 
         String status;
-        boolean isLoggedIn = false;
-
-        LoginPayload loginPayload = new LoginPayload(username, passwordOrCookie, uuid, csrfToken);
 
         PluginNet.Config config = new PluginNet.Config();
-        INet.asPost(config, loginPayload);
 
-        url = IConstant.API_URL + IConstant.API_LOGIN;
-        response = mPluginNet.getResponse(url, config);
+        loadLimitedData();
+        if (getLimitedData().timeout()) {
+            getLimitedData().uuid = IUtil.getGeneric().generateUuid(true);
+            getLimitedData().csrfToken = getCsrfToken(referenceUrl);
+            getLimitedData().csrfToken = getCsrfToken();
 
-        status = IDataUtil.getStatus(response);
+            LoginPayload loginPayload = new LoginPayload(username, password, getLimitedData().uuid, getLimitedData().csrfToken);
 
-        if ("ok".equalsIgnoreCase(status)) {
-            isLoggedIn = true;
+            INet.asPost(config, loginPayload);
+            url = IConstant.API_URL + IConstant.API_LOGIN;
+            response = mPlugin.getPluginNet().getResponse(url, config);
+
+            status = IDataUtil.getStatus(response);
+
+            if ("ok".equalsIgnoreCase(status)) {
+                mIsLoggedIn = true;
+                getLimitedData().usernamePk = IDataUtil.getPk(response);
+                getLimitedData().clockUp();
+                saveLimitedData();
+            }
         }
 
         // Simulate user log in.
-        usernamePk = IDataUtil.getPk(response);
+        if (mIsLoggedIn) {
+            SyncFeaturesPayload syncFeaturesPayload = new SyncFeaturesPayload(getLimitedData().uuid, getLimitedData().usernamePk, getLimitedData().csrfToken);
 
-        SyncFeaturesPayload syncFeaturesPayload = new SyncFeaturesPayload(uuid, usernamePk, csrfToken);
+            INet.asPost(config, syncFeaturesPayload);
+            url = IConstant.API_URL + IConstant.API_SYNC_FEATURES;
+            response = mPlugin.getPluginNet().getResponse(url, config);
 
-        INet.asPost(config, syncFeaturesPayload);
-        url = IConstant.API_URL + IConstant.API_SYNC_FEATURES;
-        response = mPluginNet.getResponse(url, config);
+            INet.asGet(config);
+            url = IConstant.API_URL + IConstant.API_AUTO_COMPLETE_USER_LIST;
+            response = mPlugin.getPluginNet().getResponse(url, config);
 
-        INet.asGet(config);
-        url = IConstant.API_URL + IConstant.API_AUTO_COMPLETE_USER_LIST;
-        response = mPluginNet.getResponse(url, config);
+//            INet.asGet(config);
+//            url = IConstant.API_URL + IConstant.API_GET_INBOX;
+//            response = mPlugin.getPluginNet().getResponse(url, config);
+//            mPlugin.getHelper(StorageCache.class).write("resap_get_inbox", response);
+//
+//            INet.asGet(config);
+//            url = IConstant.API_URL + IConstant.API_GET_RECENT_ACTIVITY;
+//            response = mPlugin.getPluginNet().getResponse(url, config);
+//            mPlugin.getHelper(StorageCache.class).write("resap_get_recent_activity", response);
 
-        INet.asGet(config);
-        url = IConstant.API_URL + IConstant.API_GET_INBOX;
-        response = mPluginNet.getResponse(url, config);
-
-        INet.asGet(config);
-        url = IConstant.API_URL + IConstant.API_GET_RECENT_ACTIVITY;
-        response = mPluginNet.getResponse(url, config);
-
-        ///////////////////
+            ///////////////////
+        }
         
-        return isLoggedIn;
+        return mIsLoggedIn;
+    }
+
+    boolean alreadyLoggedIn() {
+        return mIsLoggedIn;
     }
 
     private String getCsrfToken() {
+        String csrfToken;
+
+        csrfToken = getCsrfToken(IConstant.API_URL + String.format(IConstant.API_FETCH_HEADERS, IUtil.getGeneric().generateUuid(false)));
+
+        return csrfToken;
+    }
+
+    private String getCsrfToken(String url) {
         PluginNet.Config config = new PluginNet.Config();
-        mPluginNet.getResponse(IConstant.API_URL + String.format(IConstant.API_FETCH_HEADERS, IUtil.getGeneric().generateUuid(false)), config);
+        mPlugin.getPluginNet().getResponse(url, config);
 
         for (Map.Entry<String, HttpCookie> entryCookie : config.getCookies()) {
             if ("csrftoken".equalsIgnoreCase(entryCookie.getKey())) {
@@ -80,6 +121,28 @@ public class ILogin {
         }
 
         return null;
+    }
+
+    private LimitedData getLimitedData() {
+        return mLimitedData;
+    }
+
+    private void saveLimitedData() {
+        StorageCache storageCache = mPlugin.getHelper(StorageCache.class);
+        if (getLimitedData().csrfToken != null) storageCache.write("il_csrf", getLimitedData().csrfToken);
+        storageCache.write("il_uuid", getLimitedData().uuid);
+        storageCache.write("il_upk", getLimitedData().usernamePk);
+        storageCache.write("il_time", String.valueOf(getLimitedData().mTimeMillis));
+    }
+
+    private void loadLimitedData() {
+        String timeMillis;
+
+        StorageCache storageCache = mPlugin.getHelper(StorageCache.class);
+        getLimitedData().csrfToken = storageCache.read("il_csrf");
+        getLimitedData().uuid = storageCache.read("il_uuid");
+        getLimitedData().usernamePk = storageCache.read("il_upk");
+        getLimitedData().mTimeMillis = (timeMillis = storageCache.read("il_time")) != null ? Long.parseLong(timeMillis) : 0;
     }
 
     class Payload {

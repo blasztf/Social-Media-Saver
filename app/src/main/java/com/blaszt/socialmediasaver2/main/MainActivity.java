@@ -64,7 +64,7 @@ public final class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (Intent.ACTION_SEND.equals(intent.getAction())) {
             String url = intent.getStringExtra(Intent.EXTRA_TEXT);
-            intent = new Intent(MainActivity.this, URLHandler.class);
+            intent = new Intent(this, URLHandler.class);
             intent.setAction(URLHandler.ACTION_HANDLE_URL);
             intent.putExtra(URLHandler.EXTRA_URL, url);
             startService(intent);

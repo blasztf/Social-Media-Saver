@@ -114,7 +114,7 @@ public final class URLHandler extends IntentService implements URLHandlerListene
         String[] mediaURLs;
 
         postStatusNotification("Fetching media urls...");
-        mediaURLs = module.use(this).getMediaURLs(url);
+        mediaURLs = module.use(this.getApplicationContext()).getMediaURLs(url);
         postStatusNotification(String.format(Locale.getDefault(), "Total media urls : %d", mediaURLs.length));
         if (mediaURLs.length > 0) {
 //            Log.d("MEDIA_URL_SIZE", "size : " + mediaURLs.length);
