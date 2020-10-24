@@ -23,6 +23,14 @@
 
     <string name="pref_storage_default_value">0</string>
 
+    <string-array name="pref_view_names">
+        <item>All</item>
+    </string-array>
+    <string-array name="pref_view_values">
+        <item>all</item>
+    </string-array>
+    <string name="pref_view_default_value">all</string>
+
     <string name="pref_title_vibrate">Vibrate</string>
     <string name="install_modules">Installed Modules</string>
     <string name="no_modules">There are no modules available right now…</string>
@@ -30,6 +38,7 @@
     <string name="app_guidelines">Copy any url social media post (ex: tweet, post, etc.) to download the media data. Tap button on the bottom-right to use this app in the background</string>
     <string name="download_button">Download</string>
     <string name="title_activity_modules_central">Modules Central</string>
+    <string name="pref_key_view_media">key_view_media</string>
     <string name="pref_key_sort_media">key_sort_media</string>
     <string name="pref_key_recursive">key_recursive</string>
     <string name="pref_key_storage">key_storage</string>

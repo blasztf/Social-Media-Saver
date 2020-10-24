@@ -26,6 +26,7 @@ public final class AppSettings {
     private String KEY_SORT_MEDIA;
     private String KEY_RECURSIVE;
     private String KEY_STORAGE;
+    private String KEY_VIEW_MEDIA;
 
     private WeakReference<Context> mContext;
     private SharedPreferences mSharedPreferences;
@@ -48,6 +49,7 @@ public final class AppSettings {
         KEY_SORT_MEDIA = getContext().getString(R.string.pref_key_sort_media);
         KEY_RECURSIVE = getContext().getString(R.string.pref_key_recursive);
         KEY_STORAGE = getContext().getString(R.string.pref_key_storage);
+        KEY_VIEW_MEDIA = getContext().getString(R.string.pref_key_view_media);
     }
 
     private void setVirtualEnv() {
@@ -74,6 +76,10 @@ public final class AppSettings {
         return mSharedPreferences.getInt(KEY_SORT_MEDIA, Pair.BY_DATE | Pair.ORDER_DESCENDING);
     }
 
+    public String viewMedia() {
+        return mSharedPreferences.getString(KEY_VIEW_MEDIA, "all");
+    }
+
     public boolean findRecursively() {
         return true; //mSharedPreferences.getBoolean(KEY_RECURSIVE, true);
     }
@@ -96,7 +102,7 @@ public final class AppSettings {
 
     private static boolean checkContext(Context context) {
         return context instanceof MainActivity ||
-                context instanceof SettingsActivity ||
+                context instanceof SettingsCompatActivity ||
                 context instanceof URLHandler ||
                 isContextFromBroadcast(context);
     }

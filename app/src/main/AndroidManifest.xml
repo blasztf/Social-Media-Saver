@@ -45,6 +45,15 @@
                 android:value="com.blaszt.socialmediasaver2.main.MainActivity" />
         </activity>
         <activity
+            android:name=".SettingsCompatActivity"
+            android:label="@string/title_activity_settings"
+            android:parentActivityName=".main.MainActivity"
+            android:theme="@style/Theme.AppCompat.Dialog.Alert">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.blaszt.socialmediasaver2.main.MainActivity" />
+        </activity>
+        <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
             android:parentActivityName=".main.MainActivity"

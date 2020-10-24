@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="Gallery">
+<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <android.support.v7.preference.PreferenceCategory
+        android:title="Gallery">
 
-        <ListPreference
+        <android.support.v7.preference.ListPreference
             android:defaultValue="@string/pref_storage_default_value"
             android:entries="@array/pref_storage_names"
             android:entryValues="@array/pref_storage_values"
@@ -14,10 +15,18 @@
             <!--android:key="@string/pref_key_recursive"-->
             <!--android:title="Find Recursively" />-->
 
-        <com.blaszt.socialmediasaver2.preferences.SortPreference
+        <com.blaszt.socialmediasaver2.preferences.SortCompatPreference
             android:defaultValue="byDate|descending"
             android:key="@string/pref_key_sort_media"
             android:title="Sort" />
 
-    </PreferenceCategory>
-</PreferenceScreen>
+        <android.support.v7.preference.DropDownPreference
+            android:defaultValue="@string/pref_view_default_value"
+            android:entries="@array/pref_view_names"
+            android:entryValues="@array/pref_view_values"
+            android:summary="@string/pref_view_default_value"
+            android:key="@string/pref_key_view_media"
+            android:title="View media"/>
+
+    </android.support.v7.preference.PreferenceCategory>
+</android.support.v7.preference.PreferenceScreen>

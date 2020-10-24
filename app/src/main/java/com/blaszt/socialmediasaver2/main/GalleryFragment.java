@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
@@ -32,7 +33,7 @@ import android.widget.TextView;
 
 import com.blaszt.socialmediasaver2.AppSettings;
 import com.blaszt.socialmediasaver2.R;
-import com.blaszt.socialmediasaver2.SettingsActivity;
+import com.blaszt.socialmediasaver2.SettingsCompatActivity;
 import com.blaszt.socialmediasaver2.data.MediaData;
 import com.blaszt.socialmediasaver2.helper.ui.LayoutManagerUtils;
 import com.blaszt.socialmediasaver2.helper.ui.RecyclerViewCompat;
@@ -40,6 +41,7 @@ import com.blaszt.socialmediasaver2.helper.ui.RecyclerViewUtils;
 import com.blaszt.socialmediasaver2.helper.ui.ZoomUtils;
 import com.blaszt.socialmediasaver2.view.GIFVideoView;
 import com.blaszt.socialmediasaver2.view.TouchImageView;
+import com.blaszt.toolkit.util.TStrings;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
@@ -53,13 +55,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import com.blaszt.toolkit.util.TStrings;
-
 public final class GalleryFragment extends BaseFragment {
 
     private RecyclerView gallery, galleryPager;
 
     private boolean canGalleryPagerScroll = true;
+    private Configuration oldConfig;
+    private StaggeredGridLayoutManager galleryGridLayoutManager;
 
     @Nullable
     @Override
@@ -70,7 +72,7 @@ public final class GalleryFragment extends BaseFragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        oldConfig = new Configuration(getResources().getConfiguration());
         setupGalleryPager();
         setupGallery();
 
@@ -80,8 +82,12 @@ public final class GalleryFragment extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
+        String path = AppSettings.getInstance(getActivity()).storageMedia();
+        String viewMedia = AppSettings.getInstance(getActivity()).viewMedia();
+        if (!"all".equals(viewMedia)) path += File.separator + viewMedia;
+        recalculateGalleryGridColumn();
         showImages(
-                AppSettings.getInstance(getActivity()).storageMedia(),
+                path,
                 AppSettings.getInstance(getActivity()).sortMedia(),
                 AppSettings.getInstance(getActivity()).findRecursively()
         );
@@ -99,6 +105,17 @@ public final class GalleryFragment extends BaseFragment {
         return super.onBackPressed();
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        // Orientation changed, recalculate gallery layout manager.
+        if (oldConfig.orientation != newConfig.orientation) {
+            recalculateGalleryGridColumn();
+            oldConfig = new Configuration(newConfig);
+        }
+    }
+
     private void setupSettingsBtn() {
         View view = getView();
         if (view != null) {
@@ -113,8 +130,8 @@ public final class GalleryFragment extends BaseFragment {
                 public void onClick(View v) {
                     Activity activity;
                     if ((activity = getActivity()) != null) {
-                        Intent intent = new Intent(getContext(), SettingsActivity.class);
-                        intent.putExtra(SettingsActivity.EXTRA_SHOW_INIT_FRAGMENT, true);
+                        Intent intent = new Intent(getContext(), SettingsCompatActivity.class);
+                        intent.putExtra(SettingsCompatActivity.EXTRA_SHOW_INIT_FRAGMENT, true);
                         activity.startActivity(intent);
                     }
                 }
@@ -242,11 +259,11 @@ public final class GalleryFragment extends BaseFragment {
         if (view != null) {
             gallery = view.findViewById(R.id.listImage);
 
-            StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(0, StaggeredGridLayoutManager.VERTICAL);
-            staggeredGridLayoutManager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS);
-            calculateGridColumn(staggeredGridLayoutManager);
+            galleryGridLayoutManager = new StaggeredGridLayoutManager(0, StaggeredGridLayoutManager.VERTICAL);
+            galleryGridLayoutManager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS);
+            calculateGridColumn(galleryGridLayoutManager);
 
-            gallery.setLayoutManager(staggeredGridLayoutManager);
+            gallery.setLayoutManager(galleryGridLayoutManager);
             gallery.setItemAnimator(null);
             gallery.addOnItemTouchListener(new RecyclerViewCompat.OnItemClickListener(gallery) {
                 GalleryAdapter adapter;
@@ -363,6 +380,10 @@ public final class GalleryFragment extends BaseFragment {
         gridLayoutManager.setSpanCount(column);
     }
 
+    private void recalculateGalleryGridColumn() {
+        calculateGridColumn(galleryGridLayoutManager);
+    }
+
     private void showImages(String path, int sortFlags, boolean recursive) {
         List<MediaData> mediaFiles = getMediaFiles(path, sortFlags, recursive);
 
@@ -406,9 +427,9 @@ public final class GalleryFragment extends BaseFragment {
         }
     }
 
-    private List<MediaData> getMediaFiles(String path, int pair) {
-        return getMediaFiles(path, pair, false, true);
-    }
+//    private List<MediaData> getMediaFiles(String path, int pair) {
+//        return getMediaFiles(path, pair, false, true);
+//    }
 
     private List<MediaData> getMediaFiles(String path, int pair, boolean recursive) {
         return getMediaFiles(path, pair, recursive, true);

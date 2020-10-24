@@ -6,20 +6,22 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
-
-import android.preference.ListPreference;
-import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceFragment;
-import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
-import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.preference.DropDownPreference;
+import android.support.v7.preference.ListPreference;
+import android.support.v7.preference.Preference;
+import android.support.v7.preference.PreferenceFragmentCompat;
+import android.support.v7.preference.PreferenceManager;
 import android.view.MenuItem;
 
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
+import com.blaszt.socialmediasaver2.plugin.ModPlugin;
+import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
+import com.blaszt.socialmediasaver2.preferences.SMSDialogPreference;
 
-import java.util.List;
+import java.util.Locale;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -32,8 +34,8 @@ import java.util.List;
  * href="http://developer.android.com/guide/topics/ui/settings.html">Settings
  * API Guide</a> for more information on developing a Settings UI.
  */
-public class SettingsActivity extends AppCompatPreferenceActivity {
-    public static final String EXTRA_SHOW_INIT_FRAGMENT = SettingsActivity.class.getName() + ".EXTRA_SHOW_INIT_FRAGMENT";
+public class SettingsCompatActivity extends AppCompatActivity {
+    public static final String EXTRA_SHOW_INIT_FRAGMENT = SettingsCompatActivity.class.getName() + ".EXTRA_SHOW_INIT_FRAGMENT";
 
     /**
      * A preference value change listener that updates the preference's summary
@@ -104,6 +106,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             getIntent().putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, GeneralPreferenceFragment.class.getName());
         }
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_compat_settings);
         setupActionBar();
     }
 
@@ -118,41 +121,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         }
     }
 
-    @Override
-    public boolean onMenuItemSelected(int featureId, MenuItem item) {
-        int id = item.getItemId();
-        if (id == android.R.id.home) {
-            if (!super.onMenuItemSelected(featureId, item)) {
-                NavUtils.navigateUpFromSameTask(this);
-            }
-            return true;
-        }
-        return super.onMenuItemSelected(featureId, item);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean onIsMultiPane() {
-        return isXLargeTablet(this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public void onBuildHeaders(List<Header> target) {
-        loadHeadersFromResource(R.xml.pref_headers, target);
-    }
-
     /**
      * This method stops fragment injection in malicious applications.
      * Make sure to deny any unknown fragments here.
      */
     protected boolean isValidFragment(String fragmentName) {
-        return PreferenceFragment.class.getName().equals(fragmentName)
+        return PreferenceFragmentCompat.class.getName().equals(fragmentName)
                 || GeneralPreferenceFragment.class.getName().equals(fragmentName);
     }
 
@@ -161,10 +135,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      * activity is showing a two-pane settings UI.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    public static class GeneralPreferenceFragment extends PreferenceFragment {
+    public static class GeneralPreferenceFragment extends PreferenceFragmentCompat {
+
         @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
+        public void onCreatePreferences(Bundle bundle, String s) {
             addPreferencesFromResource(R.xml.pref_sort);
             setHasOptionsMenu(true);
 
@@ -173,21 +147,47 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // updated to reflect the new value, per the Android Design
             // guidelines.
             bindPreferenceSummaryToValue(findPreference(getActivity().getString(R.string.pref_key_storage)));
+            setupViewMediaPreference();
+            bindPreferenceSummaryToValue(findPreference(getActivity().getString(R.string.pref_key_view_media)));
         }
 
         @Override
-        public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-            super.onActivityCreated(savedInstanceState);
+        public void onDisplayPreferenceDialog(Preference preference) {
+            if (preference instanceof SMSDialogPreference) {
+                ((SMSDialogPreference) preference).displayPreferenceDialog(this);
+            }
+            else super.onDisplayPreferenceDialog(preference);
         }
 
         @Override
         public boolean onOptionsItemSelected(MenuItem item) {
             int id = item.getItemId();
             if (id == android.R.id.home) {
-                startActivity(new Intent(getActivity(), SettingsActivity.class));
+                startActivity(new Intent(getActivity(), SettingsCompatActivity.class));
                 return true;
             }
             return super.onOptionsItemSelected(item);
+        }
+
+        private void setupViewMediaPreference() {
+            CharSequence[][] entries = getPluginEntries();
+            DropDownPreference preference = (DropDownPreference) findPreference(getActivity().getString(R.string.pref_key_view_media));
+            preference.setEntries(entries[0]);
+            preference.setEntryValues(entries[1]);
+        }
+
+        private CharSequence[][] getPluginEntries() {
+            int size = ModPluginEngine.getInstance(getActivity()).each().size() + 1;
+            CharSequence[] entries = new CharSequence[size];
+            CharSequence[] entryValues = new CharSequence[size];
+            int i = 0;
+            entries[i] = "All";
+            entryValues[i] = "all";
+            for (ModPlugin plugin : ModPluginEngine.getInstance(getActivity()).each()) {
+                entries[++i] = String.format("%s only", plugin.getName());
+                entryValues[i] = plugin.getName();
+            }
+            return new CharSequence[][] { entries, entryValues };
         }
     }
 }
