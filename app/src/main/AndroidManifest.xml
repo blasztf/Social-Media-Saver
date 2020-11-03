@@ -29,11 +29,11 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".services.URLHandler">
+        <service android:name=".service.URLHandler">
         </service>
-        <service android:name=".services.URLService" />
+        <service android:name=".service.URLService" />
 
-        <receiver android:name=".services.URLService$ServiceBroadcast" />
+        <receiver android:name=".service.URLService$ServiceBroadcast" />
 
         <activity
             android:name=".main.ModulesCentralActivity"

@@ -11,11 +11,11 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
-    <TextView
-        android:id="@android:id/summary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall" />
+<!--    <TextView-->
+<!--        android:id="@android:id/summary"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:textAppearance="?android:attr/textAppearanceSmall" />-->
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -1,6 +1,8 @@
 package com.blaszt.socialmediasaver2.main;
 
 import android.Manifest;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -8,16 +10,30 @@ import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.blaszt.socialmediasaver2.R;
+import com.blaszt.socialmediasaver2.data.SMSContent;
 import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
+import com.blaszt.socialmediasaver2.helper.ui.RecyclerViewCompat;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
-import com.blaszt.socialmediasaver2.services.URLHandler;
-import com.blaszt.socialmediasaver2.services.URLService;
+import com.blaszt.socialmediasaver2.plugin.ModPlugin;
+import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
+import com.blaszt.socialmediasaver2.service.URLHandler;
+import com.blaszt.socialmediasaver2.service.URLService;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
@@ -61,16 +77,8 @@ public final class MainActivity extends AppCompatActivity {
 
         Thread.setDefaultUncaughtExceptionHandler(new CrashCocoExceptionHandler("sms"));
 
-        Intent intent = getIntent();
-        if (Intent.ACTION_SEND.equals(intent.getAction())) {
-            String url = intent.getStringExtra(Intent.EXTRA_TEXT);
-            intent = new Intent(this, URLHandler.class);
-            intent.setAction(URLHandler.ACTION_HANDLE_URL);
-            intent.putExtra(URLHandler.EXTRA_URL, url);
-            startService(intent);
-            finish();
-            return;
-        }
+        // Url was shared from other app, handle the url.
+        if (isSharedFromOtherApp()) return;
 
         setContentView(R.layout.activity_main);
         stopURLService();
@@ -118,6 +126,132 @@ public final class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         unsetNavigationOnBackStackChanged();
+    }
+
+    private boolean isSharedFromOtherApp() {
+        ModPlugin selectedPlugin = null;
+        final int selectedPluginIndex;
+        int index = -1;
+        String url = null;
+        Intent intent = getIntent();
+        if (Intent.ACTION_SEND.equals(intent.getAction())) {
+            url = intent.getStringExtra(Intent.EXTRA_TEXT);
+
+            for (ModPlugin plugin : ModPluginEngine.getInstance(this).each()) {
+                index++;
+                if (plugin.isURLValid(url)) {
+                    selectedPlugin = plugin;
+                    break;
+                }
+            }
+
+            if (selectedPlugin != null) {
+                selectedPluginIndex = index;
+                final AlertDialog dialog = new AlertDialog.Builder(this)
+                        .setTitle("Loading")
+                        .setMessage("Fetching media urls...")
+                        .setPositiveButton(null, null)
+                        .setNegativeButton(null, null)
+                        .setNeutralButton(null,  null)
+                        .create();
+                dialog.show();
+                selectedPlugin.use(this).fetchMediaURLs(url, new ModPlugin.ModPluginListener() {
+                    @Override
+                    public void onPluginComplete(String[] mediaURLs) {
+                        dialog.cancel();
+                        if (mediaURLs.length != 0) {
+                            if (mediaURLs.length == 1) {
+                                downloadMedia(mediaURLs[0]);
+                                finish();
+                            }
+                            else {
+                                mediaChooser(mediaURLs);
+                            }
+                        }
+                    }
+
+                    private void downloadMedia(String url) {
+                        Intent intent = new Intent(MainActivity.this, URLHandler.class);
+                        intent.setAction(SMSContent.Intent.ACTION_DOWNLOAD_MEDIA);
+                        intent.putExtra(SMSContent.Intent.EXTRA_MOD_PLUGIN_INDEX, selectedPluginIndex);
+                        intent.putExtra(SMSContent.Intent.EXTRA_MEDIA_URL, new String[] { url });
+                        MainActivity.this.startService(intent);
+                    }
+
+                    private void mediaChooser(final String[] urls) {
+                        RecyclerView media;
+                        LinearLayoutManager layoutManager;
+                        Dialog dialog = new Dialog(MainActivity.this);
+                        dialog.setContentView(R.layout.fragment_gallery);
+                        media = dialog.findViewById(R.id.listImage);
+                        layoutManager = new GridLayoutManager(MainActivity.this, 2, LinearLayoutManager.VERTICAL, false);
+                        media.setLayoutManager(layoutManager);
+                        media.addOnItemTouchListener(new RecyclerViewCompat.OnItemClickListener(media) {
+                            @Override
+                            public void onItemClick(View view, int position) {
+                                downloadMedia(urls[position]);
+                            }
+                        });
+                        media.setAdapter(new RecyclerView.Adapter() {
+                            class Holder extends RecyclerView.ViewHolder {
+                                private ImageView imView;
+                                private RequestOptions opts;
+
+                                public Holder(@NonNull View itemView) {
+                                    super(itemView);
+                                    double[] size = getDisplaySize();
+                                    imView = (ImageView) itemView;
+                                    opts = new RequestOptions()
+                                            .override((int) size[0] / 2, (int) size[1] / 2)
+                                            .centerCrop()
+                                            .placeholder(android.R.drawable.ic_menu_gallery);
+                                }
+
+                                private double[] getDisplaySize() {
+                                    DisplayMetrics metrics = getResources().getDisplayMetrics();
+                                    double width = metrics.widthPixels / metrics.density;
+                                    double height = metrics.heightPixels / metrics.density;
+                                    return new double[] { width, height };
+                                }
+                            }
+
+                            @NonNull
+                            @Override
+                            public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+                                return new Holder(new ImageView(viewGroup.getContext()));
+                            }
+
+                            @Override
+                            public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int i) {
+                                Holder holder = (Holder) viewHolder;
+                                Glide.with(holder.itemView).asBitmap().apply(holder.opts).load(urls[i]).into(holder.imView);
+                            }
+
+                            @Override
+                            public int getItemCount() {
+                                return urls.length;
+                            }
+                        });
+                        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                            @Override
+                            public void onCancel(DialogInterface dialog) {
+                                finish();
+                            }
+                        });
+                        dialog.setCanceledOnTouchOutside(true);
+                        dialog.setCancelable(true);
+                        dialog.show();
+                    }
+                });
+            }
+            else {
+                finish();
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private void stopURLService() {
@@ -211,5 +345,4 @@ public final class MainActivity extends AppCompatActivity {
                  fragment instanceof HomeFragment ||
                  fragment instanceof ModulesFragment);
     }
-
 }

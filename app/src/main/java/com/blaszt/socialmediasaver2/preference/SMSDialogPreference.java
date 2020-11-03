@@ -1,6 +1,5 @@
-package com.blaszt.socialmediasaver2.preferences;
+package com.blaszt.socialmediasaver2.preference;
 
-import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 
 public interface SMSDialogPreference {

@@ -1,4 +1,4 @@
-package com.blaszt.socialmediasaver2.services;
+package com.blaszt.socialmediasaver2.service;
 
 import android.app.PendingIntent;
 import android.app.Service;
@@ -13,6 +13,7 @@ import android.support.v4.app.NotificationCompat;
 import android.widget.RemoteViews;
 
 import com.blaszt.socialmediasaver2.R;
+import com.blaszt.socialmediasaver2.data.SMSContent;
 import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
 import com.blaszt.socialmediasaver2.main.MainActivity;
 
@@ -90,8 +91,8 @@ public final class URLService extends Service implements URLServiceListener {
     @Override
     public void handle(String url) {
         Intent intent = new Intent(URLService.this, URLHandler.class);
-        intent.setAction(URLHandler.ACTION_HANDLE_URL);
-        intent.putExtra(URLHandler.EXTRA_URL, url);
+        intent.setAction(SMSContent.Intent.ACTION_HANDLE_URL);
+        intent.putExtra(SMSContent.Intent.EXTRA_URL, url);
         startService(intent);
     }
 

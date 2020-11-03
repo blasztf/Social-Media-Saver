@@ -1,4 +1,4 @@
-package com.blaszt.socialmediasaver2.services;
+package com.blaszt.socialmediasaver2.service;
 
 import java.io.File;
 

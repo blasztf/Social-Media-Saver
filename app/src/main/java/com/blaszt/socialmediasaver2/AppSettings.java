@@ -9,13 +9,12 @@ import android.content.SharedPreferences;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.os.EnvironmentCompat;
 import android.view.ContextThemeWrapper;
 
 import com.blaszt.socialmediasaver2.data.Pair;
 import com.blaszt.socialmediasaver2.data.StorageBase;
 import com.blaszt.socialmediasaver2.main.MainActivity;
-import com.blaszt.socialmediasaver2.services.URLHandler;
+import com.blaszt.socialmediasaver2.service.URLHandler;
 
 import java.io.File;
 import java.lang.ref.WeakReference;

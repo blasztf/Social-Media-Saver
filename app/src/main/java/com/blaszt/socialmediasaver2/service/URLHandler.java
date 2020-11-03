@@ -1,18 +1,22 @@
-package com.blaszt.socialmediasaver2.services;
+package com.blaszt.socialmediasaver2.service;
 
 import android.app.IntentService;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 
+import com.blaszt.socialmediasaver2.data.SMSContent;
 import com.blaszt.socialmediasaver2.helper.data.StringUtils;
 import com.blaszt.socialmediasaver2.helper.ui.NotificationHelper;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
 import com.blaszt.socialmediasaver2.main.GalleryFragment;
 import com.blaszt.socialmediasaver2.plugin.ModPlugin;
 import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.FutureTarget;
 import com.liulishuo.okdownload.DownloadTask;
 import com.liulishuo.okdownload.core.cause.EndCause;
 import com.liulishuo.okdownload.core.cause.ResumeFailedCause;
@@ -22,10 +26,9 @@ import com.liulishuo.okdownload.core.listener.assist.Listener1Assist;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 public final class URLHandler extends IntentService implements URLHandlerListener {
-    public static final String EXTRA_URL = URLHandler.class.getName() + ".EXTRA_URL";
-    public static final String ACTION_HANDLE_URL = URLHandler.class.getName() + ".intent.action.HANDLE_URL";
 
     private int notificationId;
     private int statusNotificationId;
@@ -44,11 +47,19 @@ public final class URLHandler extends IntentService implements URLHandlerListene
         Thread.setDefaultUncaughtExceptionHandler(uncaughtException);
 
         String url;
+        String[] mediaURLs;
         if (intent != null) {
-            url = intent.getStringExtra(EXTRA_URL);
-            if (url != null) {
-                if (isURLValid(url)) {
-                    onHandleURL(url);
+            if (SMSContent.Intent.ACTION_DOWNLOAD_MEDIA.equalsIgnoreCase(intent.getAction())) {
+                mediaURLs = intent.getStringArrayExtra(SMSContent.Intent.EXTRA_MEDIA_URL);
+                module = ModPluginEngine.getInstance(this).each().get(intent.getIntExtra(SMSContent.Intent.EXTRA_MOD_PLUGIN_INDEX, 0));
+                downloadAllMedia(mediaURLs);
+            }
+            else {
+                url = intent.getStringExtra(SMSContent.Intent.EXTRA_URL);
+                if (url != null) {
+                    if (isURLValid(url)) {
+                        onHandleURL(url);
+                    }
                 }
             }
         }
@@ -95,6 +106,17 @@ public final class URLHandler extends IntentService implements URLHandlerListene
             Intent intent = new Intent(URLHandler.this, GalleryFragment.class);
             PendingIntent pending = PendingIntent.getActivity(URLHandler.this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
             notification.setContentIntent(pending);
+
+            FutureTarget<Bitmap> bitmap = Glide.with(this)
+                    .asBitmap()
+                    .load(media)
+                    .submit();
+
+            try {
+                notification.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(bitmap.get()));
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
         }
 
         notification
@@ -110,24 +132,13 @@ public final class URLHandler extends IntentService implements URLHandlerListene
 
     @Override
     public File onHandleURL(String url) {
-        File media = null;
+        File media;
         String[] mediaURLs;
 
         postStatusNotification("Fetching media urls...");
-        mediaURLs = module.use(this.getApplicationContext()).getMediaURLs(url);
-        postStatusNotification(String.format(Locale.getDefault(), "Total media urls : %d", mediaURLs.length));
-        if (mediaURLs.length > 0) {
-//            Log.d("MEDIA_URL_SIZE", "size : " + mediaURLs.length);
-            for (String mediaURL : mediaURLs) {
-//                Log.d("MEDIA_URL", mediaURL);
-                String type = determineType(mediaURL);
-                startNotification(type);
-                media = downloadMedia(mediaURL);
-                endNotification(media, type);
-            }
+        mediaURLs = module.use(this).getMediaURLs(url);
 
-            postStatusNotification(null);
-        }
+        media = downloadAllMedia(mediaURLs);
 
         return media;
     }
@@ -178,6 +189,26 @@ public final class URLHandler extends IntentService implements URLHandlerListene
                 .setOngoing(false);
 
         NotificationHelper.notify(this, notificationId, notification);
+    }
+
+    private File downloadAllMedia(String[] mediaURLs) {
+        File media = null;
+
+        postStatusNotification(String.format(Locale.getDefault(), "Total media urls : %d", mediaURLs.length));
+        if (mediaURLs.length > 0) {
+//            Log.d("MEDIA_URL_SIZE", "size : " + mediaURLs.length);
+            for (String mediaURL : mediaURLs) {
+//                Log.d("MEDIA_URL", mediaURL);
+                String type = determineType(mediaURL);
+                startNotification(type);
+                media = downloadMedia(mediaURL);
+                endNotification(media, type);
+            }
+
+            postStatusNotification(null);
+        }
+
+        return media;
     }
 
     private File downloadMedia(String url) {

@@ -1,6 +1,7 @@
 package com.blaszt.socialmediasaver2.plugin;
 
 import android.content.Context;
+import android.os.AsyncTask;
 
 import com.blaszt.socialmediasaver2.plugin.helper.Helper;
 
@@ -171,6 +172,37 @@ public class ModPlugin extends Plugin {
         public String[] getMediaURLs(String url) {
             return mModPlugin.getMediaURLs(url);
         }
+
+        public void fetchMediaURLs(String url, ModPluginListener listener) {
+            ModPluginAsync task = new ModPluginAsync(this, listener);
+            task.execute(url);
+        }
+    }
+
+    private static class ModPluginAsync extends AsyncTask<String, Void, String[]> {
+        private ContextInjector mModPlugin;
+        private ModPluginListener mModPluginListener;
+
+        private ModPluginAsync(ContextInjector plugin, ModPluginListener listener) {
+            mModPlugin = plugin;
+            mModPluginListener = listener;
+        }
+
+        @Override
+        protected String[] doInBackground(String... strings) {
+            String[] mediaURLs = mModPlugin.getMediaURLs(strings[0]);
+            return mediaURLs;
+        }
+
+        @Override
+        protected void onPostExecute(String[] strings) {
+            super.onPostExecute(strings);
+            mModPluginListener.onPluginComplete(strings);
+        }
+    }
+
+    public interface ModPluginListener {
+        void onPluginComplete(String[] mediaURLs);
     }
 
     public static class ModPluginException extends RuntimeException {

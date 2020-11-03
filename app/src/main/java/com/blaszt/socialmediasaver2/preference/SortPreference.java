@@ -1,4 +1,4 @@
-package com.blaszt.socialmediasaver2.preferences;
+package com.blaszt.socialmediasaver2.preference;
 
 import android.content.Context;
 import android.content.SharedPreferences;

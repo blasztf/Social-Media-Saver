@@ -15,7 +15,7 @@
             <!--android:key="@string/pref_key_recursive"-->
             <!--android:title="Find Recursively" />-->
 
-        <com.blaszt.socialmediasaver2.preferences.SortCompatPreference
+        <com.blaszt.socialmediasaver2.preference.SortCompatPreference
             android:defaultValue="byDate|descending"
             android:key="@string/pref_key_sort_media"
             android:title="Sort" />

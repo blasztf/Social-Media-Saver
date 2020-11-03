@@ -19,9 +19,7 @@ import android.view.MenuItem;
 import com.blaszt.socialmediasaver2.logger.CrashCocoExceptionHandler;
 import com.blaszt.socialmediasaver2.plugin.ModPlugin;
 import com.blaszt.socialmediasaver2.plugin.ModPluginEngine;
-import com.blaszt.socialmediasaver2.preferences.SMSDialogPreference;
-
-import java.util.Locale;
+import com.blaszt.socialmediasaver2.preference.SMSDialogPreference;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On

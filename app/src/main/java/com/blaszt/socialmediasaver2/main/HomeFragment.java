@@ -14,8 +14,9 @@ import android.widget.Button;
 
 import com.blaszt.socialmediasaver2.R;
 import com.blaszt.socialmediasaver2.TestAct;
-import com.blaszt.socialmediasaver2.services.URLHandler;
-import com.blaszt.socialmediasaver2.services.URLService;
+import com.blaszt.socialmediasaver2.data.SMSContent;
+import com.blaszt.socialmediasaver2.service.URLHandler;
+import com.blaszt.socialmediasaver2.service.URLService;
 
 public final class HomeFragment extends BaseFragment implements View.OnClickListener, View.OnLongClickListener {
     private TextInputEditText urltext;
@@ -73,8 +74,8 @@ public final class HomeFragment extends BaseFragment implements View.OnClickList
         if (text != null) {
             String url = text.toString();
             Intent intent = new Intent(getSupportActivity(), URLHandler.class);
-            intent.setAction(URLHandler.ACTION_HANDLE_URL);
-            intent.putExtra(URLHandler.EXTRA_URL, url);
+            intent.setAction(SMSContent.Intent.ACTION_HANDLE_URL);
+            intent.putExtra(SMSContent.Intent.EXTRA_URL, url);
             getSupportActivity().startService(intent);
         }
     }
